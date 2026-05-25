@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="my">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <title>အက်ဒမင်အကန့် | John Gaming Shop</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Poppins', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: radial-gradient(circle at 20% 30%, #0a0f1e, #020408);
+      color: white;
+      min-height: 100vh;
+      overflow-x: hidden;
+      padding: 20px;
+      padding-bottom: 40px;
+    }
+
+    .admin-header {
+      background: rgba(15, 25, 45, 0.95);
+      backdrop-filter: blur(12px);
+      border-radius: 20px;
+      padding: 16px 24px;
+      margin-bottom: 25px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 15px;
+      border: 1px solid rgba(0,255,231,0.3);
+    }
+    .admin-header h1 { font-size: 1.3rem; color: #00ffe7; }
+    .logout-btn { background: rgba(220,38,38,0.2); border: 1px solid #ef4444; border-radius: 40px; padding: 8px 20px; color: #fca5a5; cursor: pointer; transition: all 0.2s; }
+    .logout-btn:hover { background: #ef4444; color: white; }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 16px;
+      margin-bottom: 25px;
+    }
+    .stat-card {
+      background: rgba(255,255,255,0.05);
+      backdrop-filter: blur(10px);
+      border-radius: 20px;
+      padding: 18px;
+      text-align: center;
+      border: 1px solid rgba(0,255,231,0.2);
+    }
+    .stat-number { font-size: 2rem; font-weight: bold; color: #00ffe7; }
+    .stat-label { font-size: 0.8rem; color: #94a3b8; margin-top: 5px; }
+
+    .tab-menu {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 25px;
+      flex-wrap: wrap;
+    }
+    .tab-btn {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(0,255,231,0.2);
+      border-radius: 40px;
+      padding: 10px 24px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: #94a3b8;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .tab-btn.active { background: linear-gradient(90deg, #00ffe7, #3b82f6); color: black; border-color: transparent; }
+    .tab-btn:hover:not(.active) { border-color: #00ffe7; color: #00ffe7; }
+
+    .section { display: none; }
+    .section.active { display: block; }
+
+    /* Search Box */
+    .search-box {
+      background: rgba(255,255,255,0.05);
+      border-radius: 50px;
+      padding: 5px 15px;
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .search-box input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      padding: 12px;
+      color: white;
+      font-size: 0.9rem;
+      outline: none;
+    }
+    .search-box button {
+      background: linear-gradient(90deg, #00ffe7, #3b82f6);
+      border: none;
+      border-radius: 40px;
+      padding: 8px 20px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    /* User Info Card */
+    .user-info-card {
+      background: rgba(0, 255, 231, 0.1);
+      border-radius: 24px;
+      padding: 20px;
+      margin-bottom: 20px;
+      border: 1px solid #00ffe7;
+    }
+    .user-info-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .user-info-label { color: #94a3b8; font-weight: 500; }
+    .user-info-value { color: #00ffe7; font-weight: bold; word-break: break-all; }
+
+    /* Private Notice */
+    .private-notice {
+      background: rgba(255,255,255,0.05);
+      border-radius: 20px;
+      padding: 15px;
+      margin-top: 15px;
+    }
+    .private-notice textarea {
+      width: 100%;
+      padding: 12px;
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(0,255,231,0.3);
+      border-radius: 16px;
+      color: white;
+      margin: 10px 0;
+      resize: vertical;
+      font-family: inherit;
+    }
+    .send-private-btn {
+      background: linear-gradient(90deg, #00ffe7, #3b82f6);
+      border: none;
+      border-radius: 40px;
+      padding: 10px 20px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    /* Request Card */
+    .request-card {
+      background: rgba(255,255,255,0.05);
+      backdrop-filter: blur(10px);
+      border-radius: 20px;
+      padding: 18px;
+      margin-bottom: 16px;
+      border: 1px solid rgba(0,255,231,0.2);
+    }
+    .request-header { display: flex; justify-content: space-between; flex-wrap: wrap; margin-bottom: 12px; gap: 10px; }
+    .user-id { font-family: monospace; color: #00ffe7; font-size: 0.85rem; cursor: pointer; }
+    .user-id:hover { text-decoration: underline; }
+    .status { padding: 4px 12px; border-radius: 20px; font-size: 0.7rem; background: #f59e0b; }
+    .status.approved { background: #10b981; }
+    .status.rejected { background: #ef4444; }
+    .request-image img { max-width: 200px; border-radius: 12px; cursor: pointer; margin-top: 10px; }
+    .button-group { display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
+    .approve-btn { background: #10b981; border: none; padding: 8px 20px; border-radius: 30px; color: white; cursor: pointer; }
+    .reject-btn { background: #ef4444; border: none; padding: 8px 20px; border-radius: 30px; color: white; cursor: pointer; }
+    .amount-input { background: rgba(255,255,255,0.1); border: 1px solid #00ffe7; border-radius: 30px; padding: 8px 12px; color: white; width: 130px; }
+
+    /* Account Item & User Item */
+    .account-item, .user-item {
+      background: rgba(255,255,255,0.05);
+      border-radius: 16px;
+      padding: 12px 16px;
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .account-item:hover, .user-item:hover { background: rgba(0,255,231,0.1); transform: translateX(5px); }
+    .account-info, .user-info { flex: 1; }
+    .account-name, .user-uid { font-weight: bold; color: #00ffe7; font-family: monospace; }
+    .delete-btn { background: rgba(220,38,38,0.2); border: 1px solid #ef4444; border-radius: 30px; padding: 6px 16px; color: #fca5a5; cursor: pointer; }
+
+    /* Add Account Form */
+    .add-account-form, .notice-form {
+      background: rgba(255,255,255,0.05);
+      backdrop-filter: blur(10px);
+      border-radius: 24px;
+      padding: 24px;
+      margin-bottom: 25px;
+      border: 1px solid rgba(0,255,231,0.3);
+    }
+    .form-title { font-size: 1.2rem; color: #00ffe7; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
+    .form-group { margin-bottom: 16px; }
+    .form-group label { display: block; font-size: 0.8rem; color: #94a3b8; margin-bottom: 6px; }
+    .form-group input, .form-group textarea, .form-group select {
+      width: 100%;
+      padding: 12px 16px;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(0,255,231,0.3);
+      border-radius: 30px;
+      color: white;
+      font-size: 0.9rem;
+      outline: none;
+    }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .submit-btn { background: linear-gradient(90deg, #00ffe7, #3b82f6); border: none; border-radius: 40px; padding: 12px 24px; font-weight: bold; color: black; cursor: pointer; margin-top: 10px; }
+
+    .toast {
+      position: fixed;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.95);
+      backdrop-filter: blur(8px);
+      color: white;
+      padding: 12px 24px;
+      border-radius: 50px;
+      font-size: 0.85rem;
+      opacity: 0;
+      transition: opacity 0.3s;
+      pointer-events: none;
+      z-index: 1100;
+      border: 1px solid #00ffe7;
+    }
+    .toast.show { opacity: 1; }
+    .toast.error { border-color: #ef4444; background: rgba(220,38,38,0.9); }
+
+    @media (max-width: 550px) {
+      body { padding: 15px; }
+      .form-row { grid-template-columns: 1fr; }
+      .request-image img { max-width: 100%; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="admin-header">
+  <h1>👑 အက်ဒမင်အကန့် - John Gaming Shop</h1>
+  <button class="logout-btn" onclick="logout()">🚪 ထွက်မည်</button>
+</div>
+
+<div class="stats-grid">
+  <div class="stat-card"><div class="stat-number" id="pendingCount">0</div><div class="stat-label">ဆိုင်းငံ့နေသော တောင်းဆိုမှုများ</div></div>
+  <div class="stat-card"><div class="stat-number" id="totalRequests">0</div><div class="stat-label">စုစုပေါင်း တောင်းဆိုမှုများ</div></div>
+  <div class="stat-card"><div class="stat-number" id="totalUsers">0</div><div class="stat-label">စုစုပေါင်း အသုံးပြုသူများ</div></div>
+  <div class="stat-card"><div class="stat-number" id="totalAccounts">0</div><div class="stat-label">ရောင်းရန် အကောင့်များ</div></div>
+</div>
+
+<div class="tab-menu">
+  <button class="tab-btn active" data-tab="payments">💰 ငွေဖြည့်တောင်းဆိုမှုများ</button>
+  <button class="tab-btn" data-tab="users">👥 အသုံးပြုသူများ</button>
+  <button class="tab-btn" data-tab="accounts">🎮 အကောင့်များ စီမံရန်</button>
+  <button class="tab-btn" data-tab="notices">📢 အသိပေးချက်များ</button>
+</div>
+
+<!-- Payment Requests Section -->
+<div id="paymentsSection" class="section active">
+  <div id="paymentsContainer"></div>
+</div>
+
+<!-- Users Section -->
+<div id="usersSection" class="section">
+  <div class="search-box">
+    <input type="text" id="uidSearchInput" placeholder="🔍 UID ဖြင့်ရှာရန် (အသုံးပြုသူအိုင်ဒီ)">
+    <button onclick="searchUserByUID()">🔍 ရှာမည်</button>
+  </div>
+  <div id="userInfoResult" style="display:none;"></div>
+  <div style="margin: 20px 0 10px;"><strong>📋 အသုံးပြုသူအားလုံး စာရင်း</strong></div>
+  <div id="usersList"></div>
+</div>
+
+<!-- Manage Accounts Section -->
+<div id="accountsSection" class="section">
+  <div class="add-account-form">
+    <div class="form-title">➕ အကောင့်အသစ် ထည့်သွင်းရန်</div>
+    <div class="form-row">
+      <div class="form-group"><label>ဂိမ်းအမည်</label><input type="text" id="accGame" placeholder="ဥပမာ - Mobile Legends"></div>
+      <div class="form-group"><label>အကောင့်အမည်</label><input type="text" id="accName" placeholder="ဥပမာ - Mythic Player"></div>
+    </div>
+    <div class="form-group"><label>ဖော်ပြချက်</label><textarea id="accDesc" rows="2" placeholder="Skin၊ အဆင့်၊ ဟီးရိုးများ..."></textarea></div>
+    <div class="form-row">
+      <div class="form-group"><label>စျေးနှုန်း (ကျပ်)</label><input type="number" id="accPrice" placeholder="50000"></div>
+      <div class="form-group"><label>အိုင်ကွန် (Emoji)</label><input type="text" id="accIcon" placeholder="🎮" maxlength="2"></div>
+    </div>
+    <div class="form-group"><label>ပုံလင့် (မထည့်လည်းရ)</label><input type="text" id="accImage" placeholder="https://..."></div>
+    <button class="submit-btn" onclick="addAccount()">➕ အကောင့်ထည့်မည်</button>
+  </div>
+  <div id="accountsList"></div>
+</div>
+
+<!-- Notices Section -->
+<div id="noticesSection" class="section">
+  <div class="notice-form">
+    <div class="form-title">📢 အသုံးပြုသူအားလုံးသို့ အသိပေးချက်ပို့ရန်</div>
+    <div class="form-group"><label>ခေါင်းစဉ်</label><input type="text" id="noticeTitle" placeholder="ခေါင်းစဉ်"></div>
+    <div class="form-group"><label>အကြောင်းအရာ</label><textarea id="noticeMsg" rows="3" placeholder="အကြောင်းအရာ..."></textarea></div>
+    <div class="form-row">
+      <div class="form-group"><label>အမျိုးအစား</label>
+        <select id="noticeType">
+          <option value="announcement">📢 ကြေငြာချက်</option>
+          <option value="warning">⚠️ သတိပေးချက်</option>
+          <option value="promotion">🎉 ပရိုမိုးရှင်း</option>
+          <option value="update">🔄 အပ်ဒိတ်</option>
+          <option value="event">🎪 ပွဲလမ်းသဘင်</option>
+        </select>
+      </div>
+      <div class="form-group"><label>အမှတ်အသား (မထည့်လည်းရ)</label><input type="text" id="noticeBadge" placeholder="ဥပမာ - အရေးကြီး"></div>
+    </div>
+    <button class="submit-btn" onclick="sendNoticeToAll()">📨 အားလုံးသို့ ပို့မည်</button>
+  </div>
+  <div id="noticesList"></div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+  import { getAuth, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+  import { getDatabase, ref, onValue, update, remove, push, set, get } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyCRIyvljXaZV1keVpvBrTXiLszza_iJMD0",
+    authDomain: "john-gaming-shop.firebaseapp.com",
+    projectId: "john-gaming-shop",
+    storageBucket: "john-gaming-shop.firebasestorage.app",
+    messagingSenderId: "40810672889",
+    appId: "1:40810672889:web:5661a8db077037b346e828",
+    measurementId: "G-M8PLKW0P8L"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getDatabase(app);
+
+  const ADMIN_EMAIL = "playeraung449@gmail.com";
+  const TELEGRAM_BOT_TOKEN = "8653967411:AAFfw-0pR8RysuPD6aoSlZ7w7d8XNNs8l_A";
+  const TELEGRAM_CHAT_ID = "6427719618";
+
+  function showToast(msg, isError = false) {
+    const toast = document.getElementById('toast');
+    toast.textContent = msg;
+    toast.className = isError ? 'toast error show' : 'toast show';
+    setTimeout(() => toast.classList.remove('show'), 3000);
+  }
+
+  async function sendTelegramNotification(message) {
+    const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
+    try {
+      await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chat_id: TELEGRAM_CHAT_ID, text: message, parse_mode: 'HTML' })
+      });
+    } catch (err) { console.error("Telegram error:", err); }
+  }
+
+  // ========== ငွေဖြည့်တောင်းဆိုမှုများ ==========
+  async function approveRequest(userId, requestId, amount) {
+    try {
+      const userRef = ref(db, `users/${userId}`);
+      const snapshot = await get(userRef);
+      const currentBalance = snapshot.exists() ? snapshot.val().balance || 0 : 0;
+      await update(userRef, { balance: currentBalance + parseInt(amount) });
+      await update(ref(db, `paymentRequests/${userId}/${requestId}`), { status: "approved", approvedAt: Date.now() });
+      showToast(`✅ အတည်ပြုပြီးပါပြီ။ အသုံးပြုသူအား ${parseInt(amount).toLocaleString()} ကျပ် ထည့်ပေးလိုက်ပါပြီ။`);
+      await sendTelegramNotification(`✅ ငွေဖြည့်မှု အတည်ပြုပြီး\nအသုံးပြုသူ: ${userId}\nပမာဏ: ${amount} ကျပ်`);
+      location.reload();
+    } catch (err) { showToast("အမှားရှိသည်: " + err.message, true); }
+  }
+
+  async function rejectRequest(userId, requestId) {
+    await update(ref(db, `paymentRequests/${userId}/${requestId}`), { status: "rejected" });
+    showToast("❌ တောင်းဆိုမှုကို ပယ်ဖျက်လိုက်ပါပြီ။");
+    location.reload();
+  }
+
+  function loadPayments() {
+    const paymentsRef = ref(db, 'paymentRequests');
+    onValue(paymentsRef, (snapshot) => {
+      const container = document.getElementById('paymentsContainer');
+      let pending = 0, total = 0, html = '';
+      const data = snapshot.val();
+      if (!data) { container.innerHTML = '<div style="text-align:center;padding:50px;">📭 ငွေဖြည့်တောင်းဆိုမှုများ မရှိသေးပါ</div>'; return; }
+      for (const [userId, requests] of Object.entries(data)) {
+        for (const [reqId, req] of Object.entries(requests)) {
+          total++;
+          if (req.status === 'pending') pending++;
+          const date = new Date(req.timestamp).toLocaleString('my-MM');
+          html += `<div class="request-card"><div class="request-header"><span class="user-id" onclick="window.checkUserByUID('${userId}')">👤 အသုံးပြုသူ: ${userId}</span><span class="status ${req.status === 'approved' ? 'approved' : req.status === 'rejected' ? 'rejected' : ''}">${req.status === 'pending' ? 'ဆိုင်းငံ့' : req.status === 'approved' ? 'အတည်ပြုပြီး' : 'ပယ်ဖျက်ပြီး'}</span></div>
+          <div class="request-header"><span>📅 ${date}</span><span>💰 ပမာဏ: <input class="amount-input" id="amount_${reqId}" placeholder="ငွေပမာဏထည့်ပါ" value="${req.amount || ''}"></span></div>
+          <div class="request-image"><a href="${req.imageUrl}" target="_blank"><img src="${req.imageUrl}" onerror="this.src='https://via.placeholder.com/150?text=No+Image'"></a></div>
+          ${req.status === 'pending' ? `<div class="button-group"><button class="approve-btn" onclick="window.approveRequest('${userId}', '${reqId}', document.getElementById('amount_${reqId}').value)">✅ အတည်ပြုမည်</button>
+          <button class="reject-btn" onclick="window.rejectRequest('${userId}', '${reqId}')">❌ ပယ်ဖျက်မည်</button></div>` : `<div class="button-group"><span style="color:#94a3b8;">✓ ဆောင်ရွက်ပြီးပါပြီ</span></div>`}</div>`;
+        }
+      }
+      document.getElementById('pendingCount').innerText = pending;
+      document.getElementById('totalRequests').innerText = total;
+      container.innerHTML = html || '<div style="text-align:center;padding:50px;">📭 ငွေဖြည့်တောင်းဆိုမှုများ မရှိသေးပါ</div>';
+    });
+  }
+
+  // ========== အသုံးပြုသူများ စီမံရန် ==========
+  window.checkUserByUID = async (uid) => {
+    const userRef = ref(db, `users/${uid}`);
+    const snapshot = await get(userRef);
+    const resultDiv = document.getElementById('userInfoResult');
+    
+    if (snapshot.exists()) {
+      const data = snapshot.val();
+      resultDiv.style.display = 'block';
+      resultDiv.innerHTML = `
+        <div class="user-info-card">
+          <div class="user-info-row"><span class="user-info-label">🆔 အသုံးပြုသူအိုင်ဒီ (UID):</span><span class="user-info-value">${uid}</span></div>
+          <div class="user-info-row"><span class="user-info-label">👤 အမည်:</span><span class="user-info-value">${data.name || 'သတ်မှတ်မထားသေး'}</span></div>
+          <div class="user-info-row"><span class="user-info-label">📧 အီးမေးလ်:</span><span class="user-info-value">${data.email || 'သတ်မှတ်မထားသေး'}</span></div>
+          <div class="user-info-row"><span class="user-info-label">💰 ငွေလက်ကျန်:</span><span class="user-info-value">${(data.balance || 0).toLocaleString()} ကျပ်</span></div>
+          <div class="user-info-row"><span class="user-info-label">🎫 Spin Token များ:</span><span class="user-info-value">${data.spinTokens || 0}</span></div>
+          <div class="user-info-row"><span class="user-info-label">✨ Starlight ကဒ်များ:</span><span class="user-info-value">${data.starlightCards || 0}</span></div>
+          <div class="user-info-row"><span class="user-info-label">📅 စတင်သည့်နေ့:</span><span class="user-info-value">${data.createdAt || 'မသိရှိရသေး'}</span></div>
+          <div class="private-notice">
+            <div style="color:#00ffe7; margin-bottom:10px;">📨 ဤအသုံးပြုသူထံ သီးသန့်အသိပေးချက်ပို့ရန်</div>
+            <textarea id="privateMsg" rows="3" placeholder="စာသားရေးပါ..."></textarea>
+            <button class="send-private-btn" onclick="sendPrivateNotice('${uid}')">📤 သီးသန့်ပို့မည်</button>
+          </div>
+        </div>
+      `;
+    } else {
+      resultDiv.style.display = 'block';
+      resultDiv.innerHTML = `<div class="user-info-card" style="border-color:#ef4444;"><div class="user-info-row"><span class="user-info-label">❌ ဤ UID ဖြင့် အသုံးပြုသူ မတွေ့ပါ:</span><span class="user-info-value">${uid}</span></div></div>`;
+    }
+    document.getElementById('usersSection').classList.add('active');
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    document.getElementById('usersSection').classList.add('active');
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelector('.tab-btn[data-tab="users"]').classList.add('active');
+  };
+
+  window.sendPrivateNotice = async (uid) => {
+    const message = document.getElementById('privateMsg')?.value.trim();
+    if (!message) {
+      showToast("စာသားထည့်ပါ", true);
+      return;
+    }
+    try {
+      await push(ref(db, `notifications/${uid}`), {
+        title: "📩 အက်ဒမင်ထံမှ သီးသန့်အကြောင်းကြားစာ",
+        message: message,
+        type: "announcement",
+        timestamp: Date.now(),
+        isPrivate: true
+      });
+      showToast(`✅ အသုံးပြုသူ ${uid.substring(0,12)}... သို့ သီးသန့်အကြောင်းကြားစာ ပို့ပြီးပါပြီ။`);
+      document.getElementById('privateMsg').value = '';
+      await sendTelegramNotification(`📨 သီးသန့်အကြောင်းကြားစာ ပို့ပြီး\nအသုံးပြုသူ: ${uid}\n\n${message}`);
+    } catch (err) {
+      showToast("အမှားရှိသည်: " + err.message, true);
+    }
+  };
+
+  window.searchUserByUID = () => {
+    const uid = document.getElementById('uidSearchInput').value.trim();
+    if (!uid) {
+      showToast("UID ထည့်ပါ", true);
+      return;
+    }
+    window.checkUserByUID(uid);
+  };
+
+  function loadUsersList() {
+    const usersRef = ref(db, 'users');
+    onValue(usersRef, (snapshot) => {
+      const container = document.getElementById('usersList');
+      let count = 0;
+      let html = '';
+      const data = snapshot.val();
+      if (!data) { container.innerHTML = '<div style="text-align:center;padding:20px;">📭 အသုံးပြုသူများ မရှိသေးပါ</div>'; document.getElementById('totalUsers').innerText = '0'; return; }
+      for (const [uid, user] of Object.entries(data)) {
+        count++;
+        html += `<div class="user-item" onclick="window.checkUserByUID('${uid}')">
+          <div class="user-info">
+            <div class="user-uid">🆔 ${uid}</div>
+            <div style="font-size:0.7rem; color:#94a3b8;">${user.name || 'အမည်မသိ'} | ငွေလက်ကျန်: ${(user.balance || 0).toLocaleString()} ကျပ်</div>
+          </div>
+          <div style="font-size:0.7rem; color:#00ffe7;">👆 နှိပ်၍ အချက်အလက်ကြည့်ရန်</div>
+        </div>`;
+      }
+      document.getElementById('totalUsers').innerText = count;
+      container.innerHTML = html;
+    });
+  }
+
+  // ========== အကောင့်များ စီမံရန် ==========
+  async function addAccount() {
+    const game = document.getElementById('accGame').value.trim();
+    const accountName = document.getElementById('accName').value.trim();
+    const description = document.getElementById('accDesc').value.trim();
+    const price = parseInt(document.getElementById('accPrice').value);
+    const icon = document.getElementById('accIcon').value.trim() || '🎮';
+    const imageUrl = document.getElementById('accImage').value.trim();
+
+    if (!game || !accountName || !price) { showToast("ဂိမ်းအမည်၊ အကောင့်အမည်နှင့် စျေးနှုန်း ထည့်ရန် လိုအပ်ပါသည်။", true); return; }
+    const newRef = push(ref(db, 'accounts'));
+    await set(newRef, { game, accountName, description, price, icon, imageUrl, status: 'available', createdAt: Date.now() });
+    showToast("✅ အကောင့်ထည့်သွင်းမှု အောင်မြင်ပါသည်။");
+    document.getElementById('accGame').value = ''; document.getElementById('accName').value = ''; document.getElementById('accDesc').value = '';
+    document.getElementById('accPrice').value = ''; document.getElementById('accIcon').value = '🎮'; document.getElementById('accImage').value = '';
+    loadAccountsList();
+  }
+
+  async function deleteAccount(accountId) {
+    if (confirm("ဤအကောင့်ကို ဖျက်မည်လား။")) { await remove(ref(db, `accounts/${accountId}`)); showToast("✅ အကောင့်ဖျက်ပြီးပါပြီ။"); loadAccountsList(); }
+  }
+
+  function loadAccountsList() {
+    const accountsRef = ref(db, 'accounts');
+    onValue(accountsRef, (snapshot) => {
+      const container = document.getElementById('accountsList');
+      let count = 0, html = '';
+      const data = snapshot.val();
+      if (!data) { container.innerHTML = '<div style="text-align:center;padding:20px;">📭 အကောင့်များ မရှိသေးပါ</div>'; document.getElementById('totalAccounts').innerText = '0'; return; }
+      for (const [id, acc] of Object.entries(data)) {
+        if (acc.status === 'available') count++;
+        html += `<div class="account-item"><div class="account-info"><span class="account-name">${acc.game}</span> - ${acc.accountName}<br><span style="font-size:0.7rem;color:#94a3b8;">${acc.price.toLocaleString()} ကျပ်</span></div>
+        <button class="delete-btn" onclick="window.deleteAccount('${id}')">🗑 ဖျက်မည်</button></div>`;
+      }
+      document.getElementById('totalAccounts').innerText = count;
+      container.innerHTML = html || '<div style="text-align:center;padding:20px;">📭 အကောင့်များ မရှိသေးပါ</div>';
+    });
+  }
+
+  // ========== အသိပေးချက်များ ==========
+  async function sendNoticeToAll() {
+    const title = document.getElementById('noticeTitle').value.trim();
+    const message = document.getElementById('noticeMsg').value.trim();
+    const type = document.getElementById('noticeType').value;
+    const badge = document.getElementById('noticeBadge').value.trim();
+
+    if (!title || !message) { showToast("ခေါင်းစဉ်နှင့် အကြောင်းအရာ ထည့်ရန် လိုအပ်ပါသည်။", true); return; }
+    const newRef = push(ref(db, 'notifications'));
+    await set(newRef, { title, message, type, badge, timestamp: Date.now() });
+    showToast("✅ အသိပေးချက်ကို အသုံးပြုသူအားလုံးသို့ ပို့ပြီးပါပြီ။");
+    document.getElementById('noticeTitle').value = ''; document.getElementById('noticeMsg').value = ''; document.getElementById('noticeBadge').value = '';
+    loadNoticesList();
+    await sendTelegramNotification(`📢 အသုံးပြုသူအားလုံးသို့ အသိပေးချက်အသစ်:\n${title}\n\n${message}`);
+  }
+
+  async function deleteNotice(noticeId) {
+    if (confirm("ဤအသိပေးချက်ကို ဖျက်မည်လား။")) { await remove(ref(db, `notifications/${noticeId}`)); loadNoticesList(); }
+  }
+
+  function loadNoticesList() {
+    const noticesRef = ref(db, 'notifications');
+    onValue(noticesRef, (snapshot) => {
+      const container = document.getElementById('noticesList');
+      let html = '';
+      const data = snapshot.val();
+      if (!data) { container.innerHTML = '<div style="text-align:center;padding:20px;">📭 အသိပေးချက်များ မရှိသေးပါ</div>'; return; }
+      for (const [id, notice] of Object.entries(data)) {
+        const date = new Date(notice.timestamp).toLocaleString('my-MM');
+        html += `<div class="account-item"><div class="account-info"><strong>${notice.title}</strong><br><span style="font-size:0.7rem;color:#94a3b8;">${date}</span><br>${notice.message}</div>
+        <button class="delete-btn" onclick="window.deleteNotice('${id}')">🗑 ဖျက်မည်</button></div>`;
+      }
+      container.innerHTML = html;
+    });
+  }
+
+  // ========== Global Exports ==========
+  window.approveRequest = approveRequest;
+  window.rejectRequest = rejectRequest;
+  window.addAccount = addAccount;
+  window.deleteAccount = deleteAccount;
+  window.sendNoticeToAll = sendNoticeToAll;
+  window.deleteNotice = deleteNotice;
+  window.checkUserByUID = checkUserByUID;
+  window.searchUserByUID = searchUserByUID;
+  window.sendPrivateNotice = sendPrivateNotice;
+
+  window.logout = () => { signOut(auth); window.location.href = "login.html"; };
+
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+      document.getElementById(`${btn.dataset.tab}Section`).classList.add('active');
+    });
+  });
+
+  loadPayments();
+  loadUsersList();
+  loadAccountsList();
+  loadNoticesList();
+
+  onAuthStateChanged(auth, (user) => {
+    if (!user || user.email !== ADMIN_EMAIL) window.location.href = "login.html";
+  });
+</script>
+</body>
+</html>
