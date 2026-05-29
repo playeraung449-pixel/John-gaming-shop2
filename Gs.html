@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="my">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <title>Genshin Impact | John Gaming Shop</title>
+  <!-- Supabase JS SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    :root {
+      --primary: #ffd700;
+      --secondary: #9333ea;
+      --accent: #06b6d4;
+      --danger: #ef4444;
+      --success: #10b981;
+      --genshin-gold: #ffd700;
+      --genshin-purple: #7c3aed;
+      --bg: #0a0f1e;
+      --glass: rgba(255, 255, 255, 0.05);
+      --glass-border: rgba(255, 255, 255, 0.1);
+      --text: #e2e8f0;
+      --text-muted: #94a3b8;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Poppins', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: radial-gradient(circle at 20% 30%, var(--bg), #0f0a1a);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+      padding: 20px;
+      padding-top: 80px;
+      padding-bottom: 40px;
+      position: relative;
+    }
+    
+    /* 🎨 Animated Background */
+    .particle { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; }
+    .particle span { position: absolute; width: 3px; height: 3px; background: rgba(255,215,0,0.6); border-radius: 50%; animation: floatParticle 10s infinite linear; }
+    @keyframes floatParticle { 0% { transform: translateY(100vh) scale(0); opacity: 0; } 10% { opacity: 0.8; } 90% { opacity: 0.8; } 100% { transform: translateY(-20vh) scale(1); opacity: 0; } }
+    
+    .star {
+      position: fixed;
+      width: 2px; height: 2px;
+      background: white;
+      border-radius: 50%;
+      animation: twinkle 3s infinite ease-in-out;
+      z-index: 0;
+    }
+    @keyframes twinkle { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }    
+    .glow-orb {
+      position: fixed; width: 300px; height: 300px;
+      background: radial-gradient(circle, rgba(147,51,234,0.15), transparent);
+      border-radius: 50%; filter: blur(60px);
+      pointer-events: none; z-index: 0;
+      animation: floatOrb 14s infinite alternate;
+    }
+    .glow-orb:nth-child(2) {
+      bottom: 0; right: 0;
+      background: radial-gradient(circle, rgba(255,215,0,0.1), transparent);
+      animation-duration: 18s;
+    }
+    @keyframes floatOrb { 0% { transform: translate(0, 0) scale(1); } 100% { transform: translate(40px, 30px) scale(1.2); } }
+    
+    /* 🔹 Header */
+    .header { position: relative; z-index: 10; text-align: center; margin-bottom: 20px; }
+    .header .icon { font-size: 3rem; filter: drop-shadow(0 0 15px rgba(255,215,0,0.6)); animation: bounce 2s infinite; }
+    @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+    .header h1 { font-size: 1.6rem; background: linear-gradient(135deg, var(--genshin-gold), var(--accent)); -webkit-background-clip: text; background-clip: text; color: transparent; margin-top: 8px; }
+    .header p { font-size: 0.8rem; color: var(--text-muted); margin-top: 5px; }
+    
+    .back-btn {
+      position: fixed; top: 20px; left: 20px; z-index: 20;
+      background: var(--glass); backdrop-filter: blur(8px);
+      border: 1px solid rgba(255,215,0,0.4);
+      border-radius: 40px; padding: 10px 22px;
+      font-weight: bold; color: var(--genshin-gold);
+      cursor: pointer; font-size: 14px;
+      transition: all 0.3s ease;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .back-btn:hover { background: var(--genshin-gold); color: black; transform: translateX(-3px); box-shadow: 0 0 15px rgba(255,215,0,0.5); }
+    
+    /* 🔹 Balance Card */
+    .balance-card {
+      position: relative; z-index: 10;
+      background: linear-gradient(135deg, rgba(255,215,0,0.15), rgba(147,51,234,0.1));
+      backdrop-filter: blur(8px);
+      border-radius: 30px;
+      padding: 12px 20px;
+      max-width: 280px;
+      margin: 0 auto 20px auto;
+      text-align: center;
+      border: 1px solid rgba(255,215,0,0.4);
+      box-shadow: 0 0 20px rgba(255,215,0,0.2);
+    }
+    .balance-label { font-size: 0.7rem; color: var(--text-muted); }
+    .balance-amount { font-size: 1.5rem; font-weight: bold; color: var(--genshin-gold); text-shadow: 0 0 10px rgba(255,215,0,0.5); }
+        /* 🔹 Product Grid */
+    .product-grid { position: relative; z-index: 10; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 14px; max-width: 700px; margin: 0 auto; }
+    
+    .product-card {
+      background: var(--glass);
+      backdrop-filter: blur(10px);
+      border-radius: 20px;
+      padding: 12px;
+      text-align: center;
+      border: 1px solid var(--glass-border);
+      transition: all 0.3s ease;
+      cursor: pointer;
+      overflow: hidden;
+      position: relative;
+    }
+    .product-card::after {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0; height: 3px;
+      background: linear-gradient(90deg, var(--genshin-gold), var(--genshin-purple));
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .product-card:hover {
+      transform: translateY(-5px) scale(1.02);
+      border-color: var(--genshin-gold);
+      background: rgba(255,215,0,0.1);
+      box-shadow: 0 10px 25px rgba(255,215,0,0.2);
+    }
+    .product-card:hover::after { opacity: 1; }
+    
+    .product-image {
+      width: 100%;
+      height: 100px;
+      object-fit: contain;
+      margin-bottom: 10px;
+      filter: drop-shadow(0 4px 8px rgba(0,0,0,0.3));
+      transition: transform 0.3s;
+    }
+    .product-card:hover .product-image { transform: scale(1.1); }
+    
+    .product-name { font-size: 0.85rem; font-weight: 600; margin-bottom: 5px; color: var(--text); }
+    .product-price { font-size: 0.9rem; font-weight: bold; color: var(--genshin-gold); }
+    
+    /* 🔹 Modal */
+    .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); z-index: 1000; display: none; justify-content: center; align-items: center; }
+    .modal.show { display: flex; }
+    .modal-content { background: rgba(15, 25, 45, 0.98); border-radius: 32px; padding: 28px; width: 90%; max-width: 380px; border: 2px solid var(--genshin-gold); animation: fadeScale 0.3s ease; box-shadow: 0 0 30px rgba(255,215,0,0.3); }
+    @keyframes fadeScale { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
+    .modal-content h3 { font-size: 1.3rem; margin-bottom: 15px; text-align: center; color: var(--genshin-gold); }    .modal-content p { margin: 8px 0; font-size: 0.9rem; }
+    .modal-content input { width: 100%; padding: 12px 15px; margin: 8px 0; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,215,0,0.3); border-radius: 30px; color: white; font-size: 0.9rem; outline: none; }
+    .modal-content input:focus { border-color: var(--genshin-gold); box-shadow: 0 0 10px rgba(255,215,0,0.3); }
+    .modal-content select {
+      width: 100%; padding: 12px 15px; margin: 8px 0;
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,215,0,0.3);
+      border-radius: 30px; color: white;
+      font-size: 0.9rem; outline: none; cursor: pointer;
+    }
+    .modal-content select option { background: var(--bg); color: white; }
+    .verify-status { font-size: 0.8rem; margin: 5px 0; padding: 5px 10px; border-radius: 20px; text-align: center; }
+    .status-valid { background: rgba(16,185,129,0.2); color: var(--success); }
+    .status-invalid { background: rgba(220,38,38,0.2); color: var(--danger); }
+    .modal-buttons { display: flex; gap: 12px; margin-top: 20px; }
+    .modal-btn { flex: 1; padding: 12px; border: none; border-radius: 40px; font-weight: bold; cursor: pointer; transition: all 0.2s; }
+    .modal-btn.buy { background: linear-gradient(90deg, var(--genshin-gold), var(--accent)); color: black; }
+    .modal-btn.close { background: rgba(255,255,255,0.1); color: white; }
+    .modal-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .loading-text { text-align: center; margin: 10px 0; color: var(--accent); }
+    
+    /* 🔹 History Link */
+    .history-link { position: relative; z-index: 10; display: block; text-align: center; margin-top: 30px; }
+    .history-link button { background: rgba(255,215,0,0.15); border: 1px solid var(--genshin-gold); border-radius: 40px; padding: 10px 25px; color: var(--genshin-gold); font-weight: bold; cursor: pointer; transition: all 0.2s; }
+    .history-link button:hover { background: var(--genshin-gold); color: black; }
+    
+    /* 🔹 Toast */
+    .toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(100px); background: rgba(0,0,0,0.95); backdrop-filter: blur(8px); color: white; padding: 12px 24px; border-radius: 50px; font-size: 0.85rem; opacity: 0; transition: transform 0.3s, opacity 0.3s; pointer-events: none; z-index: 1100; white-space: nowrap; border: 1px solid var(--genshin-gold); }
+    .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+    .toast.error { border-color: var(--danger); background: rgba(220,38,38,0.9); }
+    
+    @media (max-width: 550px) {
+      body { padding: 15px; padding-top: 70px; }
+      .product-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+      .product-card { padding: 10px; }
+      .product-image { height: 80px; }
+      .product-name { font-size: 0.75rem; }
+      .product-price { font-size: 0.8rem; }
+      .toast { white-space: normal; text-align: center; max-width: 90%; bottom: 20px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="particle" id="particles"></div>
+<div class="glow-orb"></div>
+<div class="glow-orb"></div>
+
+<button class="back-btn" onclick="goBack()">← နောက်သို့</button>
+<div class="header">
+  <div class="icon">⭐</div>
+  <h1>Genshin Impact</h1>
+  <p>ဆွတ်ခူးကျောက်မျက်များ အလျင်အမြန် ဝယ်ယူအားသွင်းပါ</p>
+</div>
+
+<div class="balance-card">
+  <div class="balance-label">💰 ငွေလက်ကျန်</div>
+  <div class="balance-amount" id="balance">0 ကျပ်</div>
+</div>
+
+<div class="product-grid" id="productGrid"></div>
+
+<div class="history-link">
+  <button onclick="window.location.href='history.html'">📜 မှတ်တမ်းကြည့်ရန်</button>
+</div>
+
+<!-- Purchase Modal -->
+<div class="modal" id="modal">
+  <div class="modal-content">
+    <h3>⭐ Genshin Impact</h3>
+    <p id="modalProduct">ပစ္စည်း: -</p>
+    <p id="modalPrice">ကျသင့်ငွေ: -</p>
+    <p id="modalBalance">လက်ကျန်ငွေ: -</p>
+    <input type="text" id="gameUid" placeholder="ဂိမ်းအိုင်ဒီ (UID)">
+    <select id="serverRegion">
+      <option value="">🌐 ဆာဗာရွေးပါ</option>
+      <option value="Asia">🌏 Asia</option>
+      <option value="Europe">🌍 Europe</option>
+      <option value="America">🌎 America</option>
+      <option value="TW/HK/MO">🇭🇰 TW/HK/MO</option>
+    </select>
+    <button id="verifyBtn" class="modal-btn" style="background:rgba(255,215,0,0.2); color:#ffd700; width:100%; margin-bottom:10px;" onclick="verifyAccount()">🔍 အကောင့်စစ်မည်</button>
+    <div id="verifyStatus" class="verify-status"></div>
+    <div id="verifyLoading" style="display:none;" class="loading-text">⏳ စစ်ဆေးနေသည်...</div>
+    <div class="modal-buttons">
+      <button class="modal-btn close" onclick="closeModal()">ပိတ်မယ်</button>
+      <button class="modal-btn buy" id="buyBtn" onclick="buyProduct()" disabled>ဝယ်ယူမည်</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+  // 🔑 Supabase Config
+  const SUPABASE_URL = 'https://ibrdrdumqqcskxfbmect.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlicmRyZHVtcXFjc2t4ZmJtZWN0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk4OTAxMDgsImV4cCI6MjA5NTQ2NjEwOH0.r1UB_IL7J9AxIDhwO9uXxn2EdQW4lReCrPk6JlTh0cE';
+  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  // 🔔 Telegram Bot Config
+  const TELEGRAM_BOT_TOKEN = "8653967411:AAFfw-0pR8RysuPD6aoSlZ7w7d8XNNs8l_A";
+  const TELEGRAM_CHAT_ID = "6427719618";
+
+  // 🎁 Product Data with Genshin Themed Images
+  const primogemImgSmall = "https://cdn-icons-png.flaticon.com/512/3135/3135715.png";
+  const primogemImgMedium = "https://cdn-icons-png.flaticon.com/512/3135/3135768.png";
+  const primogemImgLarge = "https://cdn-icons-png.flaticon.com/512/2991/2991155.png";
+  
+  const products = [
+    { name: "၆၀ ဆွတ်ခူးကျောက်", price: 1500, image: primogemImgSmall },
+    { name: "၃၀၀ ဆွတ်ခူးကျောက်", price: 6500, image: primogemImgSmall },
+    { name: "၉၈၀ ဆွတ်ခူးကျောက်", price: 19900, image: primogemImgMedium },
+    { name: "၁၉၈၀ ဆွတ်ခူးကျောက်", price: 39900, image: primogemImgMedium },
+    { name: "၃၂၈၀ ဆွတ်ခူးကျောက်", price: 65900, image: primogemImgLarge },
+    { name: "၆၄၈၀ ဆွတ်ခူးကျောက်", price: 129900, image: primogemImgLarge }
+  ];
+
+  let currentUser = null;
+  let currentBalance = 0;
+  let selectedProduct = null;
+  let isAccountValid = false;
+  let verifiedAccountName = "";
+
+  const toast = document.getElementById('toast');
+  const modal = document.getElementById('modal');
+  const balanceSpan = document.getElementById('balance');
+  const modalProduct = document.getElementById('modalProduct');
+  const modalPrice = document.getElementById('modalPrice');
+  const modalBalance = document.getElementById('modalBalance');
+  const gameUidInput = document.getElementById('gameUid');
+  const serverRegionInput = document.getElementById('serverRegion');
+  const verifyStatus = document.getElementById('verifyStatus');
+  const verifyLoading = document.getElementById('verifyLoading');
+  const buyBtn = document.getElementById('buyBtn');
+  const productGrid = document.getElementById('productGrid');
+
+  // 🔔 Toast Notification
+  function showToast(msg, isError = false) {
+    toast.textContent = msg;
+    toast.className = `toast ${isError ? 'error' : ''} show`;
+    setTimeout(() => toast.classList.remove('show'), 3000);
+  }
+
+  // 🎨 Create Particles & Stars
+  function createParticles() {
+    const container = document.getElementById('particles');
+    for (let i = 0; i < 60; i++) {
+      const span = document.createElement('span');
+      const size = Math.random() * 4 + 1;      span.style.width = `${size}px`;
+      span.style.height = `${size}px`;
+      span.style.left = `${Math.random() * 100}%`;
+      span.style.animationDelay = `${Math.random() * 10}s`;
+      span.style.animationDuration = `${Math.random() * 6 + 6}s`;
+      container.appendChild(span);
+    }
+    // Create twinkling stars
+    for (let i = 0; i < 30; i++) {
+      const star = document.createElement('div');
+      star.className = 'star';
+      star.style.left = `${Math.random() * 100}%`;
+      star.style.top = `${Math.random() * 100}%`;
+      star.style.animationDelay = `${Math.random() * 3}s`;
+      document.body.appendChild(star);
+    }
+  }
+  createParticles();
+
+  // 🔙 Go Back
+  window.goBack = () => { window.location.href = "index.html"; };
+
+  // 🔔 Send Telegram Notification
+  async function sendTelegramNotification(userName, userId, productName, price, gameUid, serverRegion, accountName, orderId) {
+    const message = `⭐ Genshin Impact အသစ်ဝယ်ယူမှု ⭐\n\n━━━━━━━━━━━━━━━━━━━━\n👤 အမည်: ${userName}\n🆔 User ID: ${userId}\n🎮 ဂိမ်း UID: ${gameUid}\n🌐 ဆာဗာ: ${serverRegion}\n👤 အကောင့်နာမည်: ${accountName}\n💎 ပစ္စည်း: ${productName}\n💰 ကျသင့်ငွေ: ${price.toLocaleString()} MMK\n📋 Order ID: ${orderId}\n📌 Status: ဆိုင်းငံ့ (Pending)\n━━━━━━━━━━━━━━━━━━━━\n⏰ ဝယ်ယူချိန်: ${new Date().toLocaleString()}\n\n✅ ကျေးဇူးတင်ပါသည်။ Admin အတည်ပြုချက်ကို စောင့်ဆိုင်းပါ။`;
+    
+    const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
+    try {
+      await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: TELEGRAM_CHAT_ID,
+          text: message,
+          parse_mode: 'HTML'
+        })
+      });
+    } catch (err) {
+      console.error("Telegram error:", err);
+    }
+  }
+
+  // 🎨 Render Product Grid with Images
+  function renderProducts() {
+    productGrid.innerHTML = "";
+    products.forEach(product => {
+      const card = document.createElement("div");
+      card.className = "product-card";
+      card.onclick = () => showProduct(product);
+      card.innerHTML = `        <img src="${product.image}" alt="${product.name}" class="product-image" onerror="this.src='https://via.placeholder.com/150x100?text=Primogem'">
+        <div class="product-name">${product.name}</div>
+        <div class="product-price">${product.price.toLocaleString()} ကျပ်</div>
+      `;
+      productGrid.appendChild(card);
+    });
+  }
+
+  // 🛒 Show Product Modal
+  window.showProduct = (product) => {
+    if (!currentUser) {
+      showToast("အကောင့်ဝင်ရန် လိုအပ်ပါသည်", true);
+      return;
+    }
+    selectedProduct = product;
+    isAccountValid = false;
+    verifiedAccountName = "";
+    buyBtn.disabled = true;
+    gameUidInput.value = localStorage.getItem("genshinUid") || "";
+    serverRegionInput.value = localStorage.getItem("genshinServer") || "";
+    verifyStatus.innerHTML = "";
+    verifyStatus.className = "verify-status";
+    
+    modalProduct.innerText = `ပစ္စည်း: ${product.name}`;
+    modalPrice.innerText = `ကျသင့်ငွေ: ${product.price.toLocaleString()} ကျပ်`;
+    modalBalance.innerText = `လက်ကျန်ငွေ: ${currentBalance.toLocaleString()} ကျပ်`;
+    modal.classList.add('show');
+  };
+
+  // 🔍 Verify Account (Demo)
+  window.verifyAccount = () => {
+    const gameUid = gameUidInput.value.trim();
+    const serverRegion = serverRegionInput.value;
+    
+    if (!gameUid || !serverRegion) {
+      showToast("ဂိမ်း UID နှင့် ဆာဗာ ထည့်ပါ", true);
+      return;
+    }
+    
+    verifyLoading.style.display = "block";
+    verifyStatus.innerHTML = "";
+    
+    // Demo: Simulate API check
+    setTimeout(() => {
+      verifyLoading.style.display = "none";
+      isAccountValid = true;
+      verifiedAccountName = `Genshin_${gameUid}`;
+      verifyStatus.innerHTML = `✅ အကောင့်နာမည်: ${verifiedAccountName} (${serverRegion})`;
+      verifyStatus.className = "verify-status status-valid";
+      buyBtn.disabled = false;      localStorage.setItem("genshinUid", gameUid);
+      localStorage.setItem("genshinServer", serverRegion);
+    }, 1000);
+  };
+
+  // 💰 Buy Product
+  window.buyProduct = async () => {
+    if (!currentUser) return;
+    if (!isAccountValid) {
+      showToast("အကောင့်ကို ဦးစွာစစ်ဆေးပါ", true);
+      return;
+    }
+    
+    const gameUid = gameUidInput.value.trim();
+    const serverRegion = serverRegionInput.value;
+    
+    if (currentBalance < selectedProduct.price) {
+      showToast("လက်ကျန်ငွေ မလုံလောက်ပါ", true);
+      return;
+    }
+    
+    buyBtn.disabled = true;
+    buyBtn.innerText = "လုပ်ဆောင်နေသည်...";
+    
+    try {
+      // 1. Update balance in user_profiles
+      const newBalance = currentBalance - selectedProduct.price;
+      const { error: updateError } = await supabase
+        .from('user_profiles')
+        .update({ balance: newBalance })
+        .eq('id', currentUser.id);
+      
+      if (updateError) throw updateError;
+      
+      // 2. Insert order into orders table
+      const { data: orderData, error: orderError } = await supabase
+        .from('orders')
+        .insert({
+          user_id: currentUser.id,
+          service_type: 'GenshinImpact',
+          game_id: `${gameUid} (${serverRegion})`,
+          amount: selectedProduct.price,
+          quantity: 1,
+          total_price: selectedProduct.price,
+          proof_url: null,
+          status: 'pending',
+          admin_note: `Product: ${selectedProduct.name}, Account: ${verifiedAccountName}`
+        })
+        .select()
+        .single();      
+      if (orderError) throw orderError;
+      
+      // 3. Send Telegram notification
+      const userName = currentUser.email?.split('@')[0] || "User";
+      const orderId = orderData.id;
+      await sendTelegramNotification(userName, currentUser.id, selectedProduct.name, selectedProduct.price, gameUid, serverRegion, verifiedAccountName, orderId);
+      
+      // 4. Show success
+      showToast(`✅ ဝယ်ယူမှုအောင်မြင်ပါသည်! Order ID: ${orderId.substring(0,8)}...`);
+      currentBalance = newBalance;
+      balanceSpan.innerText = `${currentBalance.toLocaleString()} ကျပ်`;
+      
+      closeModal();
+      
+    } catch (err) {
+      console.error("Purchase error:", err);
+      showToast("ဝယ်ယူမှုမအောင်မြင်ပါ: " + err.message, true);
+    } finally {
+      buyBtn.disabled = false;
+      buyBtn.innerText = "ဝယ်ယူမည်";
+    }
+  };
+
+  // ❌ Close Modal
+  window.closeModal = () => {
+    modal.classList.remove('show');
+    verifyStatus.innerHTML = "";
+    isAccountValid = false;
+    buyBtn.disabled = true;
+  };
+
+  // 👤 Load User Balance from Supabase
+  async function loadUserData(uid) {
+    try {
+      const { data: profile, error } = await supabase
+        .from('user_profiles')
+        .select('balance')
+        .eq('id', uid)
+        .single();
+      
+      if (error && error.code !== 'PGRST116') throw error;
+      
+      if (profile) {
+        currentBalance = profile.balance || 0;
+        balanceSpan.innerText = `${currentBalance.toLocaleString()} ကျပ်`;
+      }
+    } catch (err) {
+      console.error("Error loading user data:", err);
+    }  }
+
+  // 🚀 Initialize
+  renderProducts();
+
+  async function initAuth() {
+    const {  { user } } = await supabase.auth.getUser();
+    if (user) {
+      currentUser = user;
+      await loadUserData(user.id);
+    } else {
+      window.location.href = "login.html";
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', initAuth);
+</script>
+
+</body>
+</html>

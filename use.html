@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="my">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <title>အသုံးပြုပုံ | John Gaming Shop</title>
+  <!-- Supabase JS SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Poppins', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(180deg, #0a0f1e 0%, #020408 100%);
+      color: #e2e8f0;
+      min-height: 100vh;
+      overflow-x: hidden;
+      padding-bottom: 30px;
+    }
+
+    /* 🔹 Header */
+    .header {
+      background: linear-gradient(135deg, rgba(0,255,231,0.15), rgba(59,130,246,0.1));
+      padding: 25px 20px 40px;
+      position: relative;
+      border-bottom-left-radius: 30px;
+      border-bottom-right-radius: 30px;
+      margin-bottom: 20px;
+    }
+    .header-top {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 20px;
+    }
+    .back-btn {
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(0,255,231,0.3);
+      border-radius: 30px;
+      padding: 8px 18px;
+      color: #00ffe7;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .back-btn:hover { background: rgba(0,255,231,0.2); }
+    
+    .header h1 {
+      font-size: 1.5rem;
+      background: linear-gradient(135deg, #00ffe7, #3b82f6);
+      -webkit-background-clip: text; background-clip: text; color: transparent;
+      margin-bottom: 5px;    }
+    .header p { color: #94a3b8; font-size: 0.85rem; }
+
+    /* 🔹 Search Box */
+    .search-box {
+      position: relative;
+      margin-top: 15px;
+    }
+    .search-box input {
+      width: 100%;
+      padding: 12px 15px 12px 40px;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 25px;
+      color: white;
+      font-size: 0.9rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .search-box input:focus { border-color: #00ffe7; }
+    .search-box input::placeholder { color: #64748b; }
+    .search-icon {
+      position: absolute; left: 15px; top: 50%;
+      transform: translateY(-50%); color: #64748b;
+    }
+
+    /* 🔹 Guide Container */
+    .container { padding: 0 20px; max-width: 700px; margin: 0 auto; }
+
+    /* 🔹 Category Tags */
+    .tags {
+      display: flex; gap: 8px; overflow-x: auto;
+      padding: 10px 0; margin-bottom: 15px;
+      scrollbar-width: none;
+    }
+    .tags::-webkit-scrollbar { display: none; }
+    .tag {
+      padding: 6px 14px;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 20px;
+      font-size: 0.75rem;
+      color: #94a3b8;
+      white-space: nowrap;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .tag.active, .tag:hover {
+      background: linear-gradient(135deg, #00ffe7, #3b82f6);
+      color: black; border-color: transparent;    }
+
+    /* 🔹 Accordion Cards */
+    .accordion { margin-bottom: 12px; }
+    .accordion-header {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 20px;
+      padding: 16px 20px;
+      display: flex; align-items: center; justify-content: space-between;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .accordion-header:hover {
+      background: rgba(255,255,255,0.08);
+      border-color: rgba(0,255,231,0.3);
+    }
+    .accordion-header.active {
+      background: rgba(0,255,231,0.1);
+      border-color: rgba(0,255,231,0.4);
+    }
+    .accordion-title {
+      display: flex; align-items: center; gap: 12px;
+      font-weight: 600; font-size: 0.95rem;
+    }
+    .accordion-num {
+      width: 28px; height: 28px;
+      background: linear-gradient(135deg, #00ffe7, #3b82f6);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      color: black; font-size: 0.8rem; font-weight: bold;
+    }
+    .accordion-icon {
+      font-size: 1.2rem; transition: transform 0.3s;
+    }
+    .accordion-header.active .accordion-icon { transform: rotate(180deg); }
+
+    .accordion-content {
+      max-height: 0; overflow: hidden;
+      transition: max-height 0.3s ease-out;
+      background: rgba(255,255,255,0.03);
+      border-radius: 0 0 20px 20px;
+    }
+    .accordion-content.show {
+      max-height: 500px; transition: max-height 0.4s ease-in;
+    }
+    .accordion-body {
+      padding: 15px 20px 20px 60px;
+      font-size: 0.85rem; color: #cbd5e1;
+      line-height: 1.7;    }
+    .step-item {
+      display: flex; align-items: flex-start; gap: 10px;
+      margin-bottom: 12px;
+    }
+    .step-dot {
+      min-width: 20px; height: 20px;
+      background: rgba(0,255,231,0.2);
+      border: 2px solid #00ffe7;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.7rem; color: #00ffe7;
+      margin-top: 3px;
+    }
+
+    /* 🔹 Warning Box */
+    .warning-card {
+      background: linear-gradient(135deg, rgba(239,68,68,0.15), rgba(220,38,38,0.1));
+      border: 1px solid rgba(239,68,68,0.3);
+      border-radius: 20px;
+      padding: 18px;
+      margin-top: 25px;
+      display: flex; gap: 12px; align-items: flex-start;
+    }
+    .warning-icon {
+      font-size: 1.5rem; color: #fca5a5;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
+    .warning-text { font-size: 0.85rem; color: #fecaca; line-height: 1.6; }
+    .warning-text strong { color: #fca5a5; }
+
+    /* 🔹 Contact Footer */
+    .contact-footer {
+      text-align: center; margin-top: 30px; padding: 20px;
+      background: rgba(255,255,255,0.03);
+      border-radius: 20px;
+    }
+    .contact-footer a {
+      color: #00ffe7; text-decoration: none; font-weight: 600;
+    }
+    .contact-footer a:hover { text-decoration: underline; }
+
+    /* 🔹 Particles */
+    .particle {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      pointer-events: none; z-index: 0;
+    }
+    .particle span {
+      position: absolute; width: 3px; height: 3px;      background: rgba(0,255,231,0.3); border-radius: 50%;
+      animation: floatParticle 10s infinite linear;
+    }
+    @keyframes floatParticle {
+      0% { transform: translateY(100vh) scale(0); opacity: 0; }
+      10% { opacity: 0.7; }
+      90% { opacity: 0.7; }
+      100% { transform: translateY(-20vh) scale(1); opacity: 0; }
+    }
+
+    /* 🔹 Toast */
+    .toast {
+      position: fixed; bottom: 20px; left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background: rgba(0,0,0,0.95); color: white;
+      padding: 12px 24px; border-radius: 30px;
+      font-size: 0.85rem; z-index: 1000;
+      transition: transform 0.3s ease;
+      border: 1px solid rgba(0,255,231,0.3);
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+
+    @media (max-width: 500px) {
+      .header { padding: 20px 15px 35px; }
+      .header h1 { font-size: 1.3rem; }
+      .accordion-title { font-size: 0.9rem; }
+      .accordion-body { padding-left: 50px; font-size: 0.8rem; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="particle" id="particles"></div>
+
+<!-- 🔹 Header -->
+<div class="header">
+  <div class="header-top">
+    <button class="back-btn" onclick="goBack()">← နောက်သို့</button>
+    <span style="font-size: 1.5rem;">📚</span>
+  </div>
+  <h1>အသုံးပြုပုံ လမ်းညွှန်</h1>
+  <p>John Gaming Shop ကို မှန်ကန်စွာ အသုံးပြုနည်း</p>
+  
+  <!-- 🔹 Search -->
+  <div class="search-box">
+    <span class="search-icon">🔍</span>
+    <input type="text" id="searchInput" placeholder="ရှာဖွေရန် (ဥပမာ - ငွေဖြည့်, ဝယ်ယူ)" oninput="filterGuides()">
+  </div>
+</div>
+<!-- 🔹 Container -->
+<div class="container">
+
+  <!-- 🔹 Category Tags -->
+  <div class="tags">
+    <div class="tag active" onclick="filterByTag('all', this)">အားလုံး</div>
+    <div class="tag" onclick="filterByTag('account', this)">အကောင့်</div>
+    <div class="tag" onclick="filterByTag('payment', this)">ငွေဖြည့်</div>
+    <div class="tag" onclick="filterByTag('game', this)">ဂိမ်းဝယ်</div>
+    <div class="tag" onclick="filterByTag('other', this)">အခြား</div>
+  </div>
+
+  <!-- 🔹 Accordion Guides -->
+  
+  <!-- 1. Account -->
+  <div class="accordion" data-category="account">
+    <div class="accordion-header" onclick="toggleAccordion(this)">
+      <div class="accordion-title">
+        <div class="accordion-num">1</div>
+        <span>📝 အကောင့်ဖွင့် & ဝင်ရောက်ခြင်း</span>
+      </div>
+      <span class="accordion-icon">▼</span>
+    </div>
+    <div class="accordion-content">
+      <div class="accordion-body">
+        <div class="step-item"><div class="step-dot">1</div> <strong>Sign Up</strong> ကိုနှိပ်ပြီး နာမည်၊ ဖုန်း၊ Email၊ Password ထည့်ကာ အကောင့်ဖွင့်ပါ။</div>
+        <div class="step-item"><div class="step-dot">2</div> အကောင့်ဖွင့်ပြီးပါက <strong>Login</strong> ဖြင့် ဝင်ရောက်ပါ။</div>
+        <div class="step-item"><div class="step-dot">3</div> ဝင်ရောက်ပြီးပါက Dashboard တွင် သင့် <strong>UID</strong> နှင့် <strong>လက်ကျန်ငွေ</strong> ကို မြင်ရပါမည်။</div>
+        <div class="step-item"><div class="step-dot">4</div> UID ကို <strong>📋 Copy</strong> နှိပ်ပြီး မိမိလိုအပ်သလို သိမ်းဆည်းနိုင်ပါသည်။</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. Payment -->
+  <div class="accordion" data-category="payment">
+    <div class="accordion-header" onclick="toggleAccordion(this)">
+      <div class="accordion-title">
+        <div class="accordion-num">2</div>
+        <span>💰 ငွေဖြည့်သွင်းခြင်း</span>
+      </div>
+      <span class="accordion-icon">▼</span>
+    </div>
+    <div class="accordion-content">
+      <div class="accordion-body">
+        <div class="step-item"><div class="step-dot">1</div> Dashboard ရှိ <strong>💳 ငွေဖြည့်မည်</strong> (သို့) Menu ထဲမှ <strong>ငွေဖြည့်ရန်</strong> ကိုနှိပ်ပါ။</div>
+        <div class="step-item"><div class="step-dot">2</div> သတိပေးချက်များကို ဖတ်ပြီး <strong>ဆက်လက်ပြုလုပ်မည်</strong> ကိုနှိပ်ပါ။</div>
+        <div class="step-item"><div class="step-dot">3</div> ပြသထားသော KBZPay / WavePay အကောင့်သို့ ငွေလွှဲပါ။</div>
+        <div class="step-item"><div class="step-dot">4</div> ငွေလွှဲပြီးပါက <strong>Slip ဓာတ်ပုံ</strong> ရိုက်ပြီး Upload တင်ပါ။</div>
+        <div class="step-item"><div class="step-dot">5</div> Admin မှ အတည်ပြုပြီးပါက သင့်လက်ကျန်ငွေထဲသို့ အလိုအလျောက် ထည့်ပေးပါမည်။</div>
+      </div>    </div>
+  </div>
+
+  <!-- 3. Game Purchase -->
+  <div class="accordion" data-category="game">
+    <div class="accordion-header" onclick="toggleAccordion(this)">
+      <div class="accordion-title">
+        <div class="accordion-num">3</div>
+        <span>🎮 ဂိမ်းပစ္စည်းများ ဝယ်ယူခြင်း</span>
+      </div>
+      <span class="accordion-icon">▼</span>
+    </div>
+    <div class="accordion-content">
+      <div class="accordion-body">
+        <div class="step-item"><div class="step-dot">1</div> <strong>ဂိမ်းများ</strong> မှ လိုချင်သော ဂိမ်း (ML, PUBG, FF, etc.) ကိုရွေးပါ။</div>
+        <div class="step-item"><div class="step-dot">2</div> ဝယ်ယူလိုသော ပစ္စည်းအမျိုးအစား (ဥပမာ - 86 Diamonds) ကိုရွေးပါ။</div>
+        <div class="step-item"><div class="step-dot">3</div> မိမိ၏ <strong>Game ID</strong> နှင့် <strong>Server ID</strong> ကို မှန်ကန်စွာ ထည့်ပါ။</div>
+        <div class="step-item"><div class="step-dot">4</div> <strong>အကောင့်စစ်မည်</strong> ကိုနှိပ်ပြီး အကောင့်မှန်ကန်ကြောင်း အတည်ပြုပါ။</div>
+        <div class="step-item"><div class="step-dot">5</div> <strong>ဝယ်ယူမည်</strong> ကိုနှိပ်ပါ။ လက်ကျန်ငွေလုံလောက်ပါက အလိုအလျောက် ဖြတ်ယူပြီး ဝယ်ယူမှု ပြီးဆုံးပါမည်။</div>
+        <div class="step-item"><div class="step-dot">6</div> ဝယ်ယူမှု အခြေအနေကို <strong>📜 မှတ်တမ်း</strong> တွင် ကြည့်ရှုနိုင်ပါသည်။</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. Spin Wheel -->
+  <div class="accordion" data-category="other">
+    <div class="accordion-header" onclick="toggleAccordion(this)">
+      <div class="accordion-title">
+        <div class="accordion-num">4</div>
+        <span>🎡 Spin Wheel (အခမဲ့ဆုလာဘ်)</span>
+      </div>
+      <span class="accordion-icon">▼</span>
+    </div>
+    <div class="accordion-content">
+      <div class="accordion-body">
+        <div class="step-item"><div class="step-dot">✨</div> ဂိမ်းတစ်ခု ဝယ်ယူတိုင်း <strong>Spin Token 1 ခု</strong> အခမဲ့ ရရှိမည်။</div>
+        <div class="step-item"><div class="step-dot">🎰</div> <strong>Spin Wheel</strong> စာမျက်နှာတွင် ခလုတ်ကိုနှိပ်ပြီး ကံစမ်းပါ။</div>
+        <div class="step-item"><div class="step-dot">🎁</div> ဆုများ - 50ကျပ် / 2 Spins / 10% လျှော့ဈေး / 100ကျပ် / ⭐ Starlight Card</div>
+        <div class="step-item"><div class="step-dot">⭐</div> Starlight Card ရပါက နောင်တွင် တန်ဖိုးမြင့်ဆုများနှင့် လဲလှယ်နိုင်ပါသည်။</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. Order Status -->
+  <div class="accordion" data-category="other">
+    <div class="accordion-header" onclick="toggleAccordion(this)">
+      <div class="accordion-title">
+        <div class="accordion-num">5</div>
+        <span>📜 မှတ်တမ်းနှင့် အော်ဒါအခြေအနေ</span>
+      </div>      <span class="accordion-icon">▼</span>
+    </div>
+    <div class="accordion-content">
+      <div class="accordion-body">
+        <div class="step-item"><div class="step-dot">🟡</div> <strong>Pending</strong> = စောင့်ဆိုင်းဆဲ (Admin အတည်ပြုရန်)</div>
+        <div class="step-item"><div class="step-dot">🟢</div> <strong>Approved</strong> = အတည်ပြုပြီး (ပစ္စည်းအပ်နှံပြီး)</div>
+        <div class="step-item"><div class="step-dot">🔴</div> <strong>Rejected</strong> = ပယ်ဖျက်ပြီး (ငွေပြန်အပ်မည် / အကြောင်းရင်းပါရှိ)</div>
+        <div class="step-item"><div class="step-dot">🔍</div> အသေးစိတ်ကြည့်ရန် အော်ဒါကို နှိပ်ပါ။</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 6. Password Change -->
+  <div class="accordion" data-category="account">
+    <div class="accordion-header" onclick="toggleAccordion(this)">
+      <div class="accordion-title">
+        <div class="accordion-num">6</div>
+        <span>🔐 စကားဝှက်ပြောင်းလဲခြင်း</span>
+      </div>
+      <span class="accordion-icon">▼</span>
+    </div>
+    <div class="accordion-content">
+      <div class="accordion-body">
+        <div class="step-item"><div class="step-dot">1</div> Menu → <strong>Password Change</strong> ကိုသွားပါ။</div>
+        <div class="step-item"><div class="step-dot">2</div> လက်ရှိစကားဝှက်၊ စကားဝှက်အသစ် (အနည်းဆုံး 6 လုံး)၊ အတည်ပြုရန် ထည့်ပါ။</div>
+        <div class="step-item"><div class="step-dot">3</div> <strong>ပြောင်းလဲမည်</strong> ကိုနှိပ်ပါ။</div>
+        <div class="step-item"><div class="step-dot">✅</div> အောင်မြင်ပါက အလိုအလျောက် Login ပြန်ဝင်ရပါမည်။</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 🔹 Warning Card -->
+  <div class="warning-card">
+    <div class="warning-icon">⚠️</div>
+    <div class="warning-text">
+      <strong>သတိပေးချက်</strong><br>
+      • မှားယွင်းသော Game ID ဖြင့် ဝယ်ယူပါက ပြန်အမ်းမည် မဟုတ်ပါ။<br>
+      • လိမ်လည်မှုများ ပြုလုပ်ပါက အကောင့် <strong>Permanent Ban</strong> ခံရနိုင်ပါသည်။<br>
+      • မည်သည့်ပြဿနာမဆို <strong>💬 Admin နဲ့ဆက်သွယ်ရန်</strong> မှတစ်ဆင့် ဆက်သွယ်နိုင်ပါသည်။
+    </div>
+  </div>
+
+  <!-- 🔹 Contact Footer -->
+  <div class="contact-footer">
+    <p style="margin-bottom: 10px;">💬 မေးခွန်းရှိပါက ဆက်သွယ်ရန်</p>
+    <a href="owner.html">👑 Admin ကိုဆက်သွယ်ပါ →</a>
+    <p style="margin-top: 15px; font-size: 0.8rem; color: #64748b;">✨ John Gaming Shop - ကျေးဇူးတင်ပါသည် ✨</p>
+  </div>
+
+</div>
+<!-- 🔹 Toast Notification -->
+<div id="toast" class="toast"></div>
+
+<script>
+  // 🔑 Supabase Config
+  const SUPABASE_URL = 'https://ibrdrdumqqcskxfbmect.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlicmRyZHVtcXFjc2t4ZmJtZWN0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk4OTAxMDgsImV4cCI6MjA5NTQ2NjEwOH0.r1UB_IL7J9AxIDhwO9uXxn2EdQW4lReCrPk6JlTh0cE';
+  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  // 🔐 Auth Check
+  async function checkAuth() {
+    const {  { user } } = await supabase.auth.getUser();
+    if (!user) {
+      window.location.href = 'login.html';
+    }
+  }
+  checkAuth();
+
+  // 🎨 Particles
+  function createParticles() {
+    const container = document.getElementById('particles');
+    for (let i = 0; i < 50; i++) {
+      const span = document.createElement('span');
+      const size = Math.random() * 3 + 1;
+      span.style.width = `${size}px`;
+      span.style.height = `${size}px`;
+      span.style.left = `${Math.random() * 100}%`;
+      span.style.animationDelay = `${Math.random() * 10}s`;
+      span.style.animationDuration = `${Math.random() * 5 + 5}s`;
+      container.appendChild(span);
+    }
+  }
+  createParticles();
+
+  // 🔙 Go Back
+  window.goBack = () => {
+    const referrer = document.referrer;
+    if (referrer && (referrer.includes('index.html') || referrer.includes('dashboard'))) {
+      window.history.back();
+    } else {
+      window.location.href = 'index.html';
+    }
+  };
+
+  // 🔓 Accordion Toggle
+  window.toggleAccordion = (header) => {
+    const content = header.nextElementSibling;
+    const isActive = header.classList.contains('active');
+        // Close all
+    document.querySelectorAll('.accordion-header').forEach(h => {
+      h.classList.remove('active');
+      h.nextElementSibling.classList.remove('show');
+    });
+    
+    // Open clicked if not active
+    if (!isActive) {
+      header.classList.add('active');
+      content.classList.add('show');
+    }
+  };
+
+  // 🔍 Search Filter
+  window.filterGuides = () => {
+    const query = document.getElementById('searchInput').value.toLowerCase();
+    document.querySelectorAll('.accordion').forEach(acc => {
+      const text = acc.innerText.toLowerCase();
+      acc.style.display = text.includes(query) ? 'block' : 'none';
+    });
+  };
+
+  // 🏷️ Category Tag Filter
+  window.filterByTag = (category, tagEl) => {
+    // Update active tag
+    document.querySelectorAll('.tag').forEach(t => t.classList.remove('active'));
+    tagEl.classList.add('active');
+    
+    // Filter accordions
+    document.querySelectorAll('.accordion').forEach(acc => {
+      if (category === 'all' || acc.dataset.category === category) {
+        acc.style.display = 'block';
+      } else {
+        acc.style.display = 'none';
+      }
+    });
+  };
+
+  // 🔔 Toast Notification
+  function showToast(msg) {
+    const toast = document.getElementById('toast');
+    toast.textContent = msg;
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 2500);
+  }
+
+  // 🎯 Auto open first accordion on mobile
+  if (window.innerWidth < 600) {
+    setTimeout(() => {
+      const first = document.querySelector('.accordion-header');      if (first) toggleAccordion(first);
+    }, 500);
+  }
+</script>
+
+</body>
+</html>

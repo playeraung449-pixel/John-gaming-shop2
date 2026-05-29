@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="my">
+<head>
+  <meta charset="UTF-8">
+  <title>စကားဝိုင်း | John Gaming Shop</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <!-- Supabase JS SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    :root {
+      --primary: #00ffe7;
+      --secondary: #3b82f6;
+      --accent: #f59e0b;
+      --danger: #ef4444;
+      --success: #10b981;
+      --bg: #0a0f1e;
+      --glass: rgba(255, 255, 255, 0.05);
+      --glass-border: rgba(255, 255, 255, 0.1);
+      --text: #e2e8f0;
+      --text-muted: #94a3b8;
+      --user-bubble: linear-gradient(135deg, var(--primary), var(--secondary));
+      --admin-bubble: rgba(255, 255, 255, 0.1);
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Poppins', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: radial-gradient(circle at 20% 30%, var(--bg), #020408);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+      position: relative;
+    }
+    
+    /* 🎨 Animated Background */
+    .particle { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; }
+    .particle span { position: absolute; width: 3px; height: 3px; background: rgba(0, 255, 231, 0.4); border-radius: 50%; animation: floatParticle 10s infinite linear; }
+    @keyframes floatParticle { 0% { transform: translateY(100vh) scale(0); opacity: 0; } 10% { opacity: 0.8; } 90% { opacity: 0.8; } 100% { transform: translateY(-20vh) scale(1); opacity: 0; } }
+    .glow-orb { position: fixed; width: 300px; height: 300px; background: radial-gradient(circle, rgba(0,255,231,0.1), transparent); border-radius: 50%; filter: blur(60px); pointer-events: none; z-index: 0; animation: floatOrb 14s infinite alternate; }
+    .glow-orb:nth-child(2) { bottom: 0; right: 0; background: radial-gradient(circle, rgba(59,130,246,0.12), transparent); animation-duration: 18s; }
+    @keyframes floatOrb { 0% { transform: translate(0, 0) scale(1); } 100% { transform: translate(40px, 30px) scale(1.2); } }
+    
+    /* 🔹 Header */
+    .chat-header {
+      position: relative; z-index: 10;
+      background: rgba(15, 25, 45, 0.95);
+      backdrop-filter: blur(15px);
+      padding: 16px 20px;      display: flex; align-items: center; gap: 15px;
+      border-bottom: 1px solid rgba(0, 255, 231, 0.3);
+    }
+    .back-btn {
+      background: var(--glass);
+      border: 1px solid var(--primary);
+      border-radius: 40px;
+      padding: 8px 18px;
+      font-weight: bold;
+      color: var(--primary);
+      cursor: pointer;
+      transition: all 0.2s;
+      font-size: 14px;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .back-btn:hover { background: var(--primary); color: black; transform: translateX(-3px); }
+    
+    .admin-info { display: flex; align-items: center; gap: 12px; flex: 1; }
+    .admin-avatar {
+      width: 45px; height: 45px;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 24px;
+      box-shadow: 0 0 15px rgba(0,255,231,0.4);
+    }
+    .admin-details h3 { font-size: 1rem; margin-bottom: 2px; }
+    .admin-details p { font-size: 0.7rem; color: var(--text-muted); display: flex; align-items: center; gap: 5px; }
+    .online-dot {
+      width: 8px; height: 8px;
+      background: var(--success);
+      border-radius: 50%;
+      display: inline-block;
+      animation: pulse 1.5s infinite;
+    }
+    .offline-dot { background: var(--text-muted); animation: none; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+    
+    /* 🔹 Messages Container */
+    .messages-container {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      scroll-behavior: smooth;
+      position: relative; z-index: 5;
+    }
+        /* 🔹 Message Bubbles */
+    .message { display: flex; animation: fadeSlideUp 0.3s ease; max-width: 100%; }
+    @keyframes fadeSlideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    .message.user { justify-content: flex-end; }
+    .message.admin { justify-content: flex-start; }
+    
+    .bubble {
+      max-width: 75%;
+      padding: 12px 16px;
+      border-radius: 20px;
+      font-size: 14px;
+      line-height: 1.4;
+      word-wrap: break-word;
+      position: relative;
+    }
+    .message.user .bubble {
+      background: var(--user-bubble);
+      color: black;
+      border-bottom-right-radius: 4px;
+      box-shadow: 0 4px 15px rgba(0,255,231,0.3);
+    }
+    .message.admin .bubble {
+      background: var(--admin-bubble);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(0,255,231,0.2);
+      color: white;
+      border-bottom-left-radius: 4px;
+    }
+    .message-time {
+      font-size: 0.6rem;
+      opacity: 0.6;
+      margin-top: 4px;
+      text-align: right;
+      display: block;
+    }
+    
+    /* 🔹 Typing Indicator */
+    .typing-indicator {
+      display: none;
+      align-items: center;
+      gap: 4px;
+      padding: 10px 16px;
+      background: var(--admin-bubble);
+      border: 1px solid rgba(0,255,231,0.2);
+      border-radius: 25px;
+      width: fit-content;
+      margin: 0 0 10px 0;
+    }
+    .typing-indicator.show { display: flex; }
+    .typing-indicator span {      width: 8px; height: 8px;
+      background: var(--primary);
+      border-radius: 50%;
+      animation: typing 1.4s infinite;
+    }
+    .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+    .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes typing { 0%, 60%, 100% { transform: translateY(0); opacity: 0.5; } 30% { transform: translateY(-8px); opacity: 1; } }
+    
+    /* 🔹 Input Area */
+    .input-area {
+      position: relative; z-index: 10;
+      background: rgba(15, 25, 45, 0.95);
+      backdrop-filter: blur(15px);
+      padding: 15px 20px;
+      display: flex;
+      gap: 12px;
+      border-top: 1px solid rgba(0, 255, 231, 0.3);
+    }
+    .input-area input {
+      flex: 1;
+      padding: 14px 18px;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(0,255,231,0.3);
+      border-radius: 30px;
+      color: white;
+      font-size: 14px;
+      outline: none;
+      transition: all 0.2s;
+    }
+    .input-area input:focus { border-color: var(--primary); box-shadow: 0 0 10px rgba(0,255,231,0.3); }
+    .input-area input::placeholder { color: var(--text-muted); }
+    .send-btn {
+      background: linear-gradient(90deg, var(--primary), var(--secondary));
+      border: none;
+      border-radius: 40px;
+      padding: 0 25px;
+      font-weight: bold;
+      color: black;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-size: 14px;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .send-btn:hover { transform: scale(1.02); box-shadow: 0 0 15px rgba(0,255,231,0.4); }
+    .send-btn:disabled { opacity: 0.5; transform: none; cursor: not-allowed; }
+    
+    /* 🔹 Welcome Message */
+    .welcome-message {
+      text-align: center;      padding: 40px 20px;
+      color: var(--text-muted);
+    }
+    .welcome-message .icon { font-size: 3rem; margin-bottom: 15px; animation: bounce 2s infinite; }
+    @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+    
+    /* 🔹 Scrollbar */
+    .messages-container::-webkit-scrollbar { width: 4px; }
+    .messages-container::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); }
+    .messages-container::-webkit-scrollbar-thumb { background: var(--primary); border-radius: 4px; }
+    
+    /* 🔹 Toast Notification */
+    .toast {
+      position: fixed; bottom: 100px; left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background: rgba(0,0,0,0.95); backdrop-filter: blur(8px);
+      color: white; padding: 12px 24px; border-radius: 50px;
+      font-size: 0.85rem; opacity: 0; transition: transform 0.3s, opacity 0.3s;
+      pointer-events: none; z-index: 1000;
+      white-space: nowrap; border: 1px solid var(--primary);
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+    .toast.error { border-color: var(--danger); background: rgba(220,38,38,0.9); }
+    
+    @media (max-width: 550px) {
+      .bubble { max-width: 85%; font-size: 13px; padding: 10px 14px; }
+      .send-btn { padding: 0 18px; }
+      .admin-details h3 { font-size: 0.9rem; }
+      .toast { bottom: 90px; white-space: normal; text-align: center; max-width: 90%; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="particle" id="particles"></div>
+<div class="glow-orb"></div>
+<div class="glow-orb"></div>
+
+<!-- 🔹 Header -->
+<div class="chat-header">
+  <button class="back-btn" onclick="goBack()">← နောက်သို့</button>
+  <div class="admin-info">
+    <div class="admin-avatar">👑</div>
+    <div class="admin-details">
+      <h3>John Gaming Shop Admin</h3>
+      <p><span class="online-dot" id="onlineDot"></span> <span id="statusText">Online</span></p>
+    </div>
+  </div>
+</div>
+<!-- 🔹 Messages Container -->
+<div class="messages-container" id="messagesContainer">
+  <div class="welcome-message">
+    <div class="icon">💬</div>
+    <p>✨ မင်္ဂလာပါ ✨</p>
+    <p style="font-size: 12px; margin-top: 8px;">သင့်ရဲ့ မေးမြန်းချက်များကို Admin ထံ တိုက်ရိုက်မေးမြန်းနိုင်ပါသည်</p>
+  </div>
+</div>
+
+<!-- 🔹 Typing Indicator -->
+<div class="typing-indicator" id="typingIndicator">
+  <span></span><span></span><span></span>
+</div>
+
+<!-- 🔹 Input Area -->
+<div class="input-area">
+  <input type="text" id="messageInput" placeholder="စာရိုက်ပါ..." autocomplete="off">
+  <button class="send-btn" id="sendBtn">📤 ပို့ရန်</button>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+  // 🔑 Supabase Config
+  const SUPABASE_URL = 'https://ibrdrdumqqcskxfbmect.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlicmRyZHVtcXFjc2t4ZmJtZWN0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk4OTAxMDgsImV4cCI6MjA5NTQ2NjEwOH0.r1UB_IL7J9AxIDhwO9uXxn2EdQW4lReCrPk6JlTh0cE';
+  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  const messagesContainer = document.getElementById('messagesContainer');
+  const messageInput = document.getElementById('messageInput');
+  const sendBtn = document.getElementById('sendBtn');
+  const typingIndicator = document.getElementById('typingIndicator');
+  const onlineDot = document.getElementById('onlineDot');
+  const statusText = document.getElementById('statusText');
+  const toast = document.getElementById('toast');
+
+  let currentUser = null;
+  let currentUID = null;
+  let messagesChannel = null;
+
+  // 🔔 Toast Notification
+  function showToast(msg, isError = false) {
+    toast.textContent = msg;
+    toast.className = `toast ${isError ? 'error' : ''} show`;
+    setTimeout(() => toast.classList.remove('show'), 3000);
+  }
+
+  // 🎨 Create Particles
+  function createParticles() {
+    const container = document.getElementById('particles');    for (let i = 0; i < 60; i++) {
+      const span = document.createElement('span');
+      const size = Math.random() * 4 + 1;
+      span.style.width = `${size}px`;
+      span.style.height = `${size}px`;
+      span.style.left = `${Math.random() * 100}%`;
+      span.style.animationDelay = `${Math.random() * 10}s`;
+      span.style.animationDuration = `${Math.random() * 6 + 6}s`;
+      container.appendChild(span);
+    }
+  }
+  createParticles();
+
+  // 🔙 Go Back
+  window.goBack = () => { window.location.href = "index.html"; };
+
+  // ⏰ Format Time
+  function formatTime(timestamp) {
+    if (!timestamp) return '';
+    const date = new Date(timestamp);
+    return date.toLocaleTimeString('my-MM', { hour: '2-digit', minute: '2-digit' });
+  }
+
+  // 📜 Scroll to Bottom
+  function scrollToBottom() {
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+  }
+
+  // 💬 Add Message to UI
+  function addMessage(text, sender, senderName, timestamp, isOwn = false) {
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `message ${isOwn ? 'user' : 'admin'}`;
+    const timeStr = formatTime(timestamp);
+    
+    messageDiv.innerHTML = `
+      <div class="bubble">
+        ${text}
+        <span class="message-time">${timeStr}</span>
+      </div>
+    `;
+    
+    messagesContainer.appendChild(messageDiv);
+    scrollToBottom();
+  }
+
+  // 📡 Listen for New Messages (Supabase Realtime)
+  function listenForMessages(userId) {
+    messagesChannel = supabase
+      .channel(`chat-${userId}`)
+      .on('postgres_changes', {        event: 'INSERT',
+        schema: 'public',
+        table: 'messages',
+        filter: `user_id=eq.${userId}`
+      }, (payload) => {
+        const msg = payload.new;
+        if (msg) {
+          const isOwn = msg.sender_id === currentUID;
+          addMessage(msg.content, msg.sender_id, msg.sender_name, msg.created_at, isOwn);
+          
+          // Show notification if message is from admin
+          if (!isOwn && document.hidden) {
+            showToast("🔔 Admin ကနေ စာအသစ်ရောက်ရှိပါပြီ!");
+          }
+        }
+      })
+      .subscribe();
+  }
+
+  // 📤 Send Message
+  async function sendMessage() {
+    const text = messageInput.value.trim();
+    if (!text) return;
+    if (!currentUser) {
+      showToast("အကောင့်ဝင်ထားရန် လိုအပ်ပါသည်", true);
+      return;
+    }
+
+    sendBtn.disabled = true;
+    
+    try {
+      const { error } = await supabase.from('messages').insert({
+        user_id: currentUID,
+        sender_id: currentUID,
+        sender_name: currentUser.email?.split('@')[0] || "User",
+        content: text,
+        is_read: false
+      });
+      
+      if (error) throw error;
+      
+      messageInput.value = '';
+      showToast("✅ စာပို့ပြီးပါပြီ");
+      
+    } catch (err) {
+      console.error("Send error:", err);
+      showToast("စာပို့ရာတွင် အမှားရှိသည်", true);
+    } finally {
+      sendBtn.disabled = false;
+      messageInput.focus();    }
+  }
+
+  // ⌨️ Handle Enter Key
+  messageInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter' && !sendBtn.disabled) sendMessage();
+  });
+
+  sendBtn.addEventListener('click', sendMessage);
+
+  // 🔐 Auth Check & Init Chat
+  async function initChat() {
+    const {  { user } } = await supabase.auth.getUser();
+    
+    if (user) {
+      currentUser = user;
+      currentUID = user.id;
+      
+      // Clear welcome message
+      messagesContainer.innerHTML = '';
+      
+      // Load previous messages
+      await loadPreviousMessages(currentUID);
+      
+      // Start listening for new messages
+      listenForMessages(currentUID);
+      
+      // Update online status (demo)
+      updateOnlineStatus(true);
+      
+    } else {
+      showToast("ကျေးဇူးပြု၍ အကောင့်ဝင်ပါ", true);
+      setTimeout(() => { window.location.href = "login.html"; }, 1500);
+    }
+  }
+
+  // 📚 Load Previous Messages
+  async function loadPreviousMessages(userId) {
+    try {
+      const { data: messages, error } = await supabase
+        .from('messages')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: true })
+        .limit(50);
+      
+      if (error) throw error;
+      
+      if (messages && messages.length > 0) {
+        messages.forEach(msg => {          const isOwn = msg.sender_id === currentUID;
+          addMessage(msg.content, msg.sender_id, msg.sender_name, msg.created_at, isOwn);
+        });
+      } else {
+        // Show welcome if no messages
+        const welcomeDiv = document.createElement('div');
+        welcomeDiv.className = 'welcome-message';
+        welcomeDiv.innerHTML = `
+          <div class="icon">💬</div>
+          <p>✨ မင်္ဂလာပါ ${currentUser?.email?.split('@')[0] || 'User'} ✨</p>
+          <p style="font-size: 12px; margin-top: 8px;">Admin ထံ စာပို့နိုင်ပါပြီ။ ပြန်ကြားချက်ကို စောင့်ဆိုင်းပေးပါ။</p>
+        `;
+        messagesContainer.appendChild(welcomeDiv);
+      }
+      
+      scrollToBottom();
+      
+    } catch (err) {
+      console.error("Load messages error:", err);
+    }
+  }
+
+  // 🟢 Update Online Status (Demo)
+  function updateOnlineStatus(isOnline) {
+    if (isOnline) {
+      onlineDot.className = 'online-dot';
+      statusText.textContent = 'Online';
+    } else {
+      onlineDot.className = 'online-dot offline-dot';
+      statusText.textContent = 'Offline';
+    }
+  }
+
+  // 🧹 Cleanup on Unload
+  window.addEventListener('beforeunload', () => {
+    if (messagesChannel) {
+      supabase.removeChannel(messagesChannel);
+    }
+  });
+
+  // 🚀 Initialize on DOM Ready
+  document.addEventListener('DOMContentLoaded', initChat);
+</script>
+
+</body>
+</html>

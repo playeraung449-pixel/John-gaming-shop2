@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="my">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <title>AI Chat Assistant | John Gaming Shop</title>
+  <!-- Supabase JS SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    :root {
+      --primary: #00ffe7;
+      --secondary: #3b82f6;
+      --accent: #f59e0b;
+      --danger: #ef4444;
+      --success: #10b981;
+      --ai-purple: #8b5cf6;
+      --ai-pink: #ec4899;
+      --bg: #0a0f1e;
+      --glass: rgba(255, 255, 255, 0.05);
+      --glass-border: rgba(255, 255, 255, 0.1);
+      --text: #e2e8f0;
+      --text-muted: #94a3b8;
+      --user-bubble: linear-gradient(135deg, var(--primary), var(--secondary));
+      --ai-bubble: rgba(139, 92, 246, 0.15);
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Poppins', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: radial-gradient(circle at 20% 30%, var(--bg), #0f0a1a);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      position: relative;
+    }
+    
+    /* 🎨 Animated Background */
+    .particle { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; }
+    .particle span { position: absolute; width: 3px; height: 3px; background: rgba(139,92,246,0.5); border-radius: 50%; animation: floatParticle 10s infinite linear; }
+    @keyframes floatParticle { 0% { transform: translateY(100vh) scale(0); opacity: 0; } 10% { opacity: 0.8; } 90% { opacity: 0.8; } 100% { transform: translateY(-20vh) scale(1); opacity: 0; } }
+    
+    .glow-orb { position: fixed; width: 300px; height: 300px; background: radial-gradient(circle, rgba(139,92,246,0.15), transparent); border-radius: 50%; filter: blur(60px); pointer-events: none; z-index: 0; animation: floatOrb 14s infinite alternate; }
+    .glow-orb:nth-child(2) { bottom: 0; right: 0; background: radial-gradient(circle, rgba(236,72,153,0.12), transparent); animation-duration: 18s; }
+    @keyframes floatOrb { 0% { transform: translate(0, 0) scale(1); } 100% { transform: translate(40px, 30px) scale(1.2); } }
+    
+    /* 🔹 Header */
+    .chat-header {
+      position: relative; z-index: 20;      background: rgba(15, 25, 45, 0.95);
+      backdrop-filter: blur(15px);
+      padding: 16px 20px;
+      display: flex; align-items: center; gap: 15px;
+      border-bottom: 1px solid rgba(139,92,246,0.4);
+    }
+    .back-btn {
+      background: var(--glass); border: 1px solid var(--primary);
+      border-radius: 40px; padding: 8px 18px;
+      font-weight: bold; color: var(--primary);
+      cursor: pointer; transition: all 0.2s;
+      font-size: 14px; display: flex; align-items: center; gap: 6px;
+    }
+    .back-btn:hover { background: var(--primary); color: black; transform: translateX(-3px); }
+    
+    .ai-info { display: flex; align-items: center; gap: 12px; flex: 1; }
+    .ai-avatar {
+      width: 45px; height: 45px;
+      background: linear-gradient(135deg, var(--ai-purple), var(--ai-pink));
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 24px;
+      animation: aiPulse 2s infinite;
+      box-shadow: 0 0 20px rgba(139,92,246,0.5);
+    }
+    @keyframes aiPulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(139,92,246,0.4); }
+      50% { box-shadow: 0 0 0 15px rgba(139,92,246,0); }
+    }
+    .ai-details h3 { font-size: 1rem; margin-bottom: 2px; background: linear-gradient(135deg, var(--ai-purple), var(--ai-pink)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .ai-details p { font-size: 0.7rem; color: var(--text-muted); display: flex; align-items: center; gap: 5px; }
+    .online-dot { width: 8px; height: 8px; background: var(--success); border-radius: 50%; display: inline-block; animation: blink 1.5s infinite; }
+    @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+    
+    /* 🔹 Messages Container */
+    .messages-container {
+      flex: 1; overflow-y: auto; padding: 20px;
+      display: flex; flex-direction: column; gap: 12px;
+      scroll-behavior: smooth; position: relative; z-index: 5;
+    }
+    
+    /* 🔹 Message Bubbles */
+    .message { display: flex; animation: fadeSlideUp 0.3s ease; max-width: 100%; }
+    @keyframes fadeSlideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    .message.user { justify-content: flex-end; }
+    .message.ai { justify-content: flex-start; }
+    
+    .bubble {
+      max-width: 80%; padding: 12px 16px;
+      border-radius: 20px; font-size: 14px;      line-height: 1.4; word-wrap: break-word;
+      position: relative; white-space: pre-wrap;
+    }
+    .message.user .bubble {
+      background: var(--user-bubble); color: black;
+      border-bottom-right-radius: 4px;
+      box-shadow: 0 4px 15px rgba(0,255,231,0.3);
+    }
+    .message.ai .bubble {
+      background: var(--ai-bubble);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(139,92,246,0.3);
+      color: white; border-bottom-left-radius: 4px;
+    }
+    .bubble strong { color: var(--primary); font-weight: 600; }
+    .bubble em { color: var(--accent); font-style: normal; }
+    .bubble .divider { border-top: 1px solid rgba(255,255,255,0.2); margin: 8px 0; }
+    
+    .message-time { font-size: 0.6rem; opacity: 0.6; margin-top: 4px; text-align: right; display: block; }
+    
+    /* 🔹 Typing Indicator */
+    .typing-indicator {
+      display: none; align-items: center; gap: 4px;
+      padding: 10px 16px; background: var(--ai-bubble);
+      border: 1px solid rgba(139,92,246,0.3);
+      border-radius: 25px; width: fit-content;
+      margin: 0 0 10px 0;
+    }
+    .typing-indicator.show { display: flex; }
+    .typing-indicator span {
+      width: 8px; height: 8px; background: var(--ai-purple);
+      border-radius: 50%; animation: typingAnim 1.4s infinite;
+    }
+    .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+    .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes typingAnim { 0%, 60%, 100% { transform: translateY(0); opacity: 0.5; } 30% { transform: translateY(-8px); opacity: 1; } }
+    
+    /* 🔹 Quick Replies */
+    .quick-replies {
+      position: relative; z-index: 10;
+      padding: 10px 20px; display: flex; gap: 10px;
+      overflow-x: auto; scrollbar-width: none;
+      background: rgba(10, 20, 35, 0.5);
+      border-top: 1px solid rgba(139,92,246,0.2);
+    }
+    .quick-replies::-webkit-scrollbar { display: none; }
+    .quick-btn {
+      background: rgba(139,92,246,0.15);
+      border: 1px solid rgba(139,92,246,0.4);
+      border-radius: 30px; padding: 8px 16px;      font-size: 0.75rem; color: var(--ai-purple);
+      cursor: pointer; white-space: nowrap;
+      transition: all 0.2s;
+    }
+    .quick-btn:hover {
+      background: var(--ai-purple); color: white;
+      transform: translateY(-2px);
+    }
+    
+    /* 🔹 Input Area */
+    .input-area {
+      position: relative; z-index: 10;
+      background: rgba(15, 25, 45, 0.95);
+      backdrop-filter: blur(15px);
+      padding: 15px 20px;
+      display: flex; gap: 12px;
+      border-top: 1px solid rgba(139,92,246,0.3);
+    }
+    .input-area input {
+      flex: 1; padding: 14px 18px;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(139,92,246,0.3);
+      border-radius: 30px; color: white;
+      font-size: 14px; outline: none;
+      transition: all 0.2s;
+    }
+    .input-area input:focus {
+      border-color: var(--ai-purple);
+      box-shadow: 0 0 10px rgba(139,92,246,0.3);
+    }
+    .input-area input::placeholder { color: var(--text-muted); }
+    .send-btn {
+      background: linear-gradient(90deg, var(--ai-purple), var(--ai-pink));
+      border: none; border-radius: 40px;
+      padding: 0 25px; font-weight: bold;
+      color: white; cursor: pointer;
+      transition: all 0.2s; font-size: 14px;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .send-btn:hover {
+      transform: scale(1.02);
+      box-shadow: 0 0 15px rgba(139,92,246,0.5);
+    }
+    .send-btn:disabled { opacity: 0.5; transform: none; cursor: not-allowed; }
+    
+    /* 🔹 Toast */
+    .toast {
+      position: fixed; bottom: 100px; left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background: rgba(0,0,0,0.95); backdrop-filter: blur(8px);      color: white; padding: 10px 20px; border-radius: 50px;
+      font-size: 0.8rem; opacity: 0;
+      transition: transform 0.3s, opacity 0.3s;
+      pointer-events: none; z-index: 1100;
+      white-space: nowrap; border: 1px solid var(--ai-purple);
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+    
+    /* 🔹 Welcome Animation */
+    .welcome-glow {
+      position: absolute; top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 200px; height: 200px;
+      background: radial-gradient(circle, rgba(139,92,246,0.3), transparent);
+      border-radius: 50%; filter: blur(40px);
+      animation: welcomePulse 3s infinite;
+      pointer-events: none; z-index: 1;
+    }
+    @keyframes welcomePulse { 0%, 100% { opacity: 0.5; transform: translate(-50%, -50%) scale(1); } 50% { opacity: 0.8; transform: translate(-50%, -50%) scale(1.2); } }
+    
+    @media (max-width: 550px) {
+      .bubble { max-width: 90%; font-size: 13px; padding: 10px 14px; }
+      .send-btn { padding: 0 18px; }
+      .quick-replies { padding: 8px 15px; }
+      .quick-btn { padding: 6px 12px; font-size: 0.7rem; }
+      .toast { white-space: normal; text-align: center; max-width: 90%; bottom: 90px; }
+      .chat-header { padding: 12px 15px; }
+      .ai-avatar { width: 40px; height: 40px; font-size: 20px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="particle" id="particles"></div>
+<div class="glow-orb"></div>
+<div class="glow-orb"></div>
+<div class="welcome-glow" id="welcomeGlow"></div>
+
+<!-- 🔹 Header -->
+<div class="chat-header">
+  <button class="back-btn" onclick="goBack()">← နောက်သို့</button>
+  <div class="ai-info">
+    <div class="ai-avatar">🤖</div>
+    <div class="ai-details">
+      <h3>John AI Assistant</h3>
+      <p><span class="online-dot"></span> Online | 24/7</p>
+    </div>
+  </div>
+</div>
+<!-- 🔹 Messages Container -->
+<div class="messages-container" id="messagesContainer">
+  <div class="message ai">
+    <div class="bubble">
+      👋 <strong>မင်္ဂလာပါ!</strong> ကျွန်တော် <em>John AI Assistant</em> ပါ။<br>
+      ဂိမ်းပစ္စည်းများအကြောင်း၊ ငွေဖြည့်သွင်းခြင်း၊ အကောင့်ပြဿနာများအတွက် မေးမြန်းနိုင်ပါတယ်။<br><br>
+      💡 <strong>မေးခွန်းများ</strong> -<br>
+      • ဂိမ်းပစ္စည်းစျေးနှုန်းများ<br>
+      • ငွေဖြည့်သွင်းနည်း<br>
+      • အကောင့်ပြဿနာများ<br>
+      • ဝန်ဆောင်မှုအကြောင်း
+      <span class="message-time">အခုလေးတင်</span>
+    </div>
+  </div>
+</div>
+
+<!-- 🔹 Typing Indicator -->
+<div class="typing-indicator" id="typingIndicator">
+  <span></span><span></span><span></span>
+</div>
+
+<!-- 🔹 Quick Replies -->
+<div class="quick-replies" id="quickReplies">
+  <button class="quick-btn" onclick="sendQuickReply('ဂိမ်းပစ္စည်းစျေးနှုန်းများ')">🎮 ဂိမ်းစျေးနှုန်း</button>
+  <button class="quick-btn" onclick="sendQuickReply('ငွေဖြည့်သွင်းနည်း')">💰 ငွေဖြည့်နည်း</button>
+  <button class="quick-btn" onclick="sendQuickReply('အကောင့်ပြဿနာ')">🔐 အကောင့်ပြဿနာ</button>
+  <button class="quick-btn" onclick="sendQuickReply('ဝန်ဆောင်မှုများ')">✨ ဝန်ဆောင်မှုများ</button>
+  <button class="quick-btn" onclick="sendQuickReply('Spin Wheel အကြောင်း')">🎡 Spin Wheel</button>
+  <button class="quick-btn" onclick="sendQuickReply('Admin ဆက်သွယ်ရန်')">👑 Admin ဆက်သွယ်ရန်</button>
+</div>
+
+<!-- 🔹 Input Area -->
+<div class="input-area">
+  <input type="text" id="messageInput" placeholder="မေးခွန်းရေးပါ..." autocomplete="off">
+  <button class="send-btn" id="sendBtn" onclick="sendMessage()">📤 ပို့ရန်</button>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+  // 🔑 Supabase Config
+  const SUPABASE_URL = 'https://ibrdrdumqqcskxfbmect.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlicmRyZHVtcXFjc2t4ZmJtZWN0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk4OTAxMDgsImV4cCI6MjA5NTQ2NjEwOH0.r1UB_IL7J9AxIDhwO9uXxn2EdQW4lReCrPk6JlTh0cE';
+  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  const messagesContainer = document.getElementById('messagesContainer');
+  const messageInput = document.getElementById('messageInput');
+  const sendBtn = document.getElementById('sendBtn');
+  const toast = document.getElementById('toast');
+  const welcomeGlow = document.getElementById('welcomeGlow');
+  let isTyping = false;
+
+  // 🔔 Toast Notification
+  function showToast(msg) {
+    toast.textContent = msg;
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 2500);
+  }
+
+  // 🎨 Create Particles
+  function createParticles() {
+    const container = document.getElementById('particles');
+    for (let i = 0; i < 60; i++) {
+      const span = document.createElement('span');
+      const size = Math.random() * 4 + 1;
+      span.style.width = `${size}px`;
+      span.style.height = `${size}px`;
+      span.style.left = `${Math.random() * 100}%`;
+      span.style.animationDelay = `${Math.random() * 10}s`;
+      span.style.animationDuration = `${Math.random() * 6 + 6}s`;
+      container.appendChild(span);
+    }
+  }
+  createParticles();
+
+  // 📜 Scroll to Bottom
+  function scrollToBottom() {
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+  }
+
+  // ⏰ Format Time
+  function formatTime() {
+    const now = new Date();
+    return now.toLocaleTimeString('my-MM', { hour: '2-digit', minute: '2-digit' });
+  }
+
+  // 💬 Add Message to UI
+  function addMessage(text, sender, isUser = false) {
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `message ${isUser ? 'user' : 'ai'}`;
+    
+    messageDiv.innerHTML = `
+      <div class="bubble">
+        ${text}
+        <span class="message-time">${formatTime()}</span>
+      </div>
+    `;
+    
+    messagesContainer.appendChild(messageDiv);    scrollToBottom();
+  }
+
+  // ⌨️ Show Typing Indicator
+  function showTypingIndicator() {
+    isTyping = true;
+    const typingDiv = document.createElement('div');
+    typingDiv.className = 'message ai';
+    typingDiv.id = 'typingIndicator';
+    typingDiv.innerHTML = `
+      <div class="typing-indicator show">
+        <span></span><span></span><span></span>
+      </div>
+    `;
+    messagesContainer.appendChild(typingDiv);
+    scrollToBottom();
+  }
+
+  // ⌨️ Hide Typing Indicator
+  function hideTypingIndicator() {
+    isTyping = false;
+    const indicator = document.getElementById('typingIndicator');
+    if (indicator) indicator.remove();
+  }
+
+  // 🤖 AI Response Logic (Keyword-based)
+  async function getAIResponse(userMessage) {
+    const msg = userMessage.toLowerCase();
+    
+    // Game Prices
+    if (msg.includes('ဂိမ်းစျေး') || msg.includes('ဂိမ်းပစ္စည်း') || msg.includes('စျေးနှုန်း')) {
+      return `🎮 <strong>ဂိမ်းပစ္စည်းစျေးနှုန်းများ</strong> 🎮
+
+• MLBB Diamond: 11💎 = 1700 ကျပ် မှစတင်
+• PUBG UC: 60 UC = 3900 ကျပ် မှစတင်  
+• Free Fire Diamond: 210💎 = 4200 ကျပ် မှစတင်
+• Genshin Impact: 60 ဆွတ်ခူးကျောက် = 1500 ကျပ် မှစတင်
+• Honor of Kings: 6 Token = 1000 ကျပ် မှစတင်
+• Magic Chess: 172💎 = 1080 ကျပ် မှစတင်
+
+💡 အသေးစိတ်သိရန် "ဂိမ်းများ" မှ ဝင်ရောက်ကြည့်ရှုပါ။`;
+    }
+    
+    // Top Up
+    else if (msg.includes('ငွေဖြည့်') || msg.includes('ဘယ်လိုဖြည့်') || msg.includes('ငွေသွင်း')) {
+      return `💰 <strong>ငွေဖြည့်သွင်းနည်း</strong> 💰
+
+၁. ပင်မစာမျက်နှာ → "ငွေဖြည့်ရန်" ကိုနှိပ်ပါ
+၂. သတိပေးချက်များဖတ်ပြီး "ဟုတ်ကဲ့ ဆက်မည်" နှိပ်ပါ
+၃. ပေးထားသော ဘဏ်/Wave Pay အကောင့်သို့ ငွေလွှဲပါ၄. Slip ဓာတ်ပုံရိုက်၍ တင်ပေးပါ
+၅. Admin အတည်ပြုပြီးပါက ငွေလက်ကျန်ထဲသို့ ထည့်ပေးပါမည်
+
+⏱️ ပုံမှန်အားဖြင့် 5-10 မိနစ်အတွင်း အတည်ပြုပေးပါသည်။`;
+    }
+    
+    // Account Problem
+    else if (msg.includes('အကောင့်ပြဿနာ') || msg.includes('login မရ') || msg.includes('ဝင်မရ') || msg.includes('password မေ့')) {
+      return `🔐 <strong>အကောင့်ပြဿနာများ</strong> 🔐
+
+• စကားဝှက်မေ့သွားပါက → Menu → "Password Change" မှ ပြောင်းလဲနိုင်ပါသည်
+• အကောင့်မဝင်နိုင်ပါက → "Admin နဲ့ဆက်သွယ်ရန်" မှတစ်ဆင့် အကူညီတောင်းခံပါ
+• အကောင့်ပြဿနာရှိပါက သင့် UID ကို Copy လုပ်၍ Admin ထံ ပေးပို့ပါ
+
+💬 အမြန်ဆုံးဖြေရှင်းပေးပါမည်။`;
+    }
+    
+    // Services
+    else if (msg.includes('ဝန်ဆောင်မှု') || msg.includes('ဘာတွေရှိလဲ') || msg.includes('ဘာတွေဝယ်လို့ရ')) {
+      return `✨ <strong>ကျွန်ုပ်တို့၏ ဝန်ဆောင်မှုများ</strong> ✨
+
+✅ ဂိမ်းပစ္စည်းများ (Diamond, UC, Token, ဆွတ်ခူးကျောက်)
+✅ Telegram Premium
+✅ အကောင့်ရောင်းဝယ်ရေး
+✅ Spin Wheel (အခမဲ့ဆုလာဘ်)
+✅ 24/7 Customer Support
+
+🎮 ဂိမ်းများ - MLBB, PUBG, Free Fire, Genshin Impact, Honor of Kings, Magic Chess
+
+💡 ဝယ်ယူရန် "ဂိမ်းများ" မှ ဝင်ရောက်ပါ။`;
+    }
+    
+    // Order Status
+    else if (msg.includes('မှတ်တမ်း') || msg.includes('order') || msg.includes('အော်ဒါ')) {
+      return `📜 <strong>မှတ်တမ်းကြည့်ရှုနည်း</strong> 📜
+
+၁. ပင်မစာမျက်နှာ အောက်ခြေ Navigation Bar
+၂. "မှတ်တမ်း" ခလုတ်ကိုနှိပ်ပါ
+၃. သင့်ဝယ်ယူမှုများ၏ အခြေအနေကို ကြည့်ရှုနိုင်ပါသည်
+
+📌 Status အမျိုးအစားများ:
+• 🟡 Pending - စောင့်ဆိုင်းဆဲ
+• 🟢 Approved - အတည်ပြုပြီး
+• 🔴 Rejected - ပယ်ဖျက်ပြီး`;
+    }
+    
+    // Spin Wheel
+    else if (msg.includes('spin') || msg.includes('ဘီး') || msg.includes('ဆုလာဘ်')) {
+      return `🎡 <strong>Spin Wheel အကြောင်း</strong> 🎡
+• ဂိမ်းတစ်ခုဝယ်ယူတိုင်း Spin Token 1 ခုရမည်
+• ရရှိနိုင်သောဆုများ:
+  - 💰 50 ကျပ် (60%)
+  - 🎫 2 Spins (20%)
+  - 💳 လျော့ဈေး 10% (10%)
+  - 💵 100 ကျပ် (9%)
+  - ✨ Starlight Card (1%)
+
+💡 Spin Wheel မှ ဝင်ရောက်လှည့်နိုင်ပါသည်။`;
+    }
+    
+    // Starlight Card
+    else if (msg.includes('starlight') || msg.includes('ကဒ်')) {
+      return `✨ <strong>Starlight Card အကြောင်း</strong> ✨
+
+• Spin Wheel မှ 1% အခွင့်အရေးဖြင့် ရရှိနိုင်ပါသည်
+• ရရှိသော Starlight Card များကို နောင်တွင် အခြားဆုများနှင့် လဲလှယ်နိုင်ပါသည်
+• စုစုပေါင်း Starlight Card အရေအတွက်ကို သင့်ပရိုဖိုင်တွင် သိမ်းဆည်းပေးထားပါသည်
+
+💡 အသေးစိတ်သိရှိရန် Admin ကိုဆက်သွယ်ပါ။`;
+    }
+    
+    // Contact Admin
+    else if (msg.includes('admin') || msg.includes('ဆက်သွယ်') || msg.includes('အကူအညီ')) {
+      return `👑 <strong>Admin သို့ဆက်သွယ်ရန်</strong> 👑
+
+• ပင်မစာမျက်နှာ Menu → "Admin နဲ့ဆက်သွယ်ရန်"
+• သို့မဟုတ် Message စာမျက်နှာမှတစ်ဆင့် စာပို့နိုင်ပါသည်
+
+📱 Social Media:
+• TikTok: @johnny_mmk
+• Telegram: @Johnny_AZM
+• Facebook: /jucksuki
+
+⏰ အမြန်ဆုံးပြန်ကြားပေးပါမည်။`;
+    }
+    
+    // Greeting
+    else if (msg.includes('မင်္ဂလာပါ') || msg.includes('ဟိုင်း') || msg.includes('ဟေလို') || msg.includes('နေကောင်းလား')) {
+      return `👋 <strong>မင်္ဂလာပါခင်ဗျာ။</strong> ကျွန်တော် <em>John AI Assistant</em> ပါ။\n\nဘယ်လိုကူညီရမလဲဆိုတာ ပြောပြပါ။\n\n💡 မေးနိုင်တဲ့အကြောင်းအရာများ:\n• ဂိမ်းပစ္စည်းစျေးနှုန်းများ\n• ငွေဖြည့်သွင်းနည်း\n• အကောင့်ပြဿနာများ\n• ဝန်ဆောင်မှုများ\n• Spin Wheel အကြောင်း`;
+    }
+    
+    // Default
+    else {
+      return `🤔 ခင်ဗျားမေးတဲ့အကြောင်းအရာကို ကျွန်တော်နားမလည်သေးပါဘူး။\n\n💡 ကျေးဇူးပြု၍ အောက်ပါအကြောင်းအရာများထဲမှ တစ်ခုခုကို မေးမြန်းပေးပါ -\n\n• ဂိမ်းပစ္စည်းစျေးနှုန်းများ\n• ငွေဖြည့်သွင်းနည်း\n• အကောင့်ပြဿနာများ\n• ဝန်ဆောင်မှုများ\n• Spin Wheel အကြောင်း\n• မှတ်တမ်းကြည့်နည်း\n• Admin ဆက်သွယ်ရန်\n\nသို့မဟုတ် "Admin နဲ့ဆက်သွယ်ရန်" မှတစ်ဆင့် တိုက်ရိုက်ဆက်သွယ်နိုင်ပါသည်။`;
+    }
+  }
+
+  // 📤 Send Message Function
+  async function sendMessage() {    const message = messageInput.value.trim();
+    if (!message) return;
+    
+    sendBtn.disabled = true;
+    
+    // Add user message
+    addMessage(message, 'user', true);
+    messageInput.value = '';
+    
+    // Show typing indicator
+    showTypingIndicator();
+    
+    // Simulate AI thinking delay
+    setTimeout(async () => {
+      const response = await getAIResponse(message);
+      hideTypingIndicator();
+      addMessage(response, 'ai', false);
+      sendBtn.disabled = false;
+      messageInput.focus();
+    }, 800);
+  }
+
+  // 🎯 Quick Reply Handler
+  window.sendQuickReply = (text) => {
+    messageInput.value = text;
+    sendMessage();
+  };
+
+  // ⌨️ Enter Key Handler
+  messageInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter' && !sendBtn.disabled) {
+      sendMessage();
+    }
+  });
+
+  // 🔙 Go Back
+  window.goBack = () => { window.location.href = "index.html"; };
+
+  // 🔐 Auth Check
+  async function checkAuth() {
+    const {  { user } } = await supabase.auth.getUser();
+    if (!user) {
+      showToast("အကောင့်ဝင်ရန် လိုအပ်ပါသည်");
+      setTimeout(() => { window.location.href = "login.html"; }, 1500);
+    }
+  }
+
+  // 🚀 Initialize
+  document.addEventListener('DOMContentLoaded', () => {
+    checkAuth();    setTimeout(() => { welcomeGlow.style.display = 'none'; }, 3000);
+  });
+</script>
+
+</body>
+</html>

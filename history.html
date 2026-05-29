@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="my">
+<head>
+  <meta charset="UTF-8">
+  <title>မှတ်တမ်း | John Gaming Shop</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <!-- Supabase JS SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    :root {
+      --primary: #00ffe7;
+      --secondary: #3b82f6;
+      --accent: #f59e0b;
+      --danger: #ef4444;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --info: #3b82f6;
+      --bg: #0a0f1e;
+      --glass: rgba(255, 255, 255, 0.05);
+      --glass-border: rgba(255, 255, 255, 0.1);
+      --text: #e2e8f0;
+      --text-muted: #94a3b8;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Poppins', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(165deg, var(--bg) 0%, #0f172a 100%);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+      position: relative;
+    }
+    
+    /* 🎨 Animated Background */
+    .bg-gradient {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: radial-gradient(circle at 20% 30%, rgba(0,255,231,0.08), transparent);
+      z-index: 0; pointer-events: none;
+    }
+    .particle { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; }
+    .particle span { position: absolute; width: 3px; height: 3px; background: rgba(0, 255, 231, 0.4); border-radius: 50%; animation: floatParticle 10s infinite linear; }
+    @keyframes floatParticle { 0% { transform: translateY(100vh) scale(0); opacity: 0; } 10% { opacity: 0.8; } 90% { opacity: 0.8; } 100% { transform: translateY(-20vh) scale(1); opacity: 0; } }
+    
+    /* 🔹 Header */
+    .header {
+      position: relative; z-index: 10;
+      background: rgba(15, 25, 45, 0.85);
+      backdrop-filter: blur(15px);
+      padding: 20px 25px;
+      display: flex; align-items: center; justify-content: space-between;      border-bottom: 1px solid rgba(0,255,231,0.3);
+      flex-wrap: wrap; gap: 15px;
+    }
+    .back-btn {
+      background: var(--glass); border: 1px solid var(--primary);
+      border-radius: 40px; padding: 8px 20px;
+      font-weight: bold; color: var(--primary);
+      cursor: pointer; transition: all 0.2s;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .back-btn:hover { background: var(--primary); color: black; transform: translateX(-3px); }
+    .header h1 {
+      font-size: 1.4rem;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      -webkit-background-clip: text; background-clip: text; color: transparent;
+    }
+    .stats-badge {
+      background: rgba(0,255,231,0.1);
+      border-radius: 30px; padding: 8px 18px;
+      font-size: 0.85rem; border: 1px solid rgba(0,255,231,0.3);
+    }
+    .stats-badge span { color: var(--primary); font-weight: bold; font-size: 1.2rem; }
+    
+    /* 🔹 Search & Filter Bar */
+    .filter-bar {
+      position: relative; z-index: 10;
+      max-width: 700px; margin: 20px auto;
+      padding: 0 20px; display: flex; gap: 10px; flex-wrap: wrap;
+    }
+    .search-input {
+      flex: 1; min-width: 200px;
+      padding: 12px 18px;
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+      border-radius: 30px;
+      color: white; font-size: 0.9rem;
+      outline: none; transition: all 0.2s;
+    }
+    .search-input:focus { border-color: var(--primary); box-shadow: 0 0 10px rgba(0,255,231,0.3); }
+    .search-input::placeholder { color: var(--text-muted); }
+    
+    .filter-select {
+      padding: 12px 18px;
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+      border-radius: 30px;
+      color: white; font-size: 0.9rem;
+      outline: none; cursor: pointer;
+    }
+    .filter-select option { background: var(--bg); color: white; }    
+    /* 🔹 Stats Cards */
+    .stats-cards {
+      position: relative; z-index: 10;
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 12px; max-width: 700px; margin: 0 auto 30px;
+      padding: 0 20px;
+    }
+    .stat-card {
+      background: var(--glass);
+      backdrop-filter: blur(10px);
+      border-radius: 20px;
+      padding: 15px;
+      text-align: center;
+      border: 1px solid var(--glass-border);
+      transition: all 0.3s;
+    }
+    .stat-card:hover { transform: translateY(-3px); border-color: var(--primary); }
+    .stat-value { font-size: 1.5rem; font-weight: bold; color: var(--primary); }
+    .stat-label { font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; }
+    
+    /* 🔹 Timeline Container */
+    .timeline {
+      position: relative; z-index: 10;
+      max-width: 700px; margin: 0 auto;
+      padding: 0 20px 80px;
+    }
+    
+    /* Timeline line */
+    .timeline::before {
+      content: ''; position: absolute;
+      left: 30px; top: 0; bottom: 0;
+      width: 2px;
+      background: linear-gradient(180deg, var(--primary), var(--secondary), var(--primary));
+      opacity: 0.5;
+    }
+    
+    /* Timeline item */
+    .timeline-item {
+      position: relative;
+      margin-bottom: 30px;
+      padding-left: 65px;
+      animation: fadeSlide 0.5s ease forwards;
+      opacity: 0;
+    }
+    @keyframes fadeSlide { from { opacity: 0; transform: translateX(-20px); } to { opacity: 1; transform: translateX(0); } }
+    
+    /* Timeline dot */
+    .timeline-dot {
+      position: absolute; left: 20px; top: 5px;      width: 20px; height: 20px;
+      background: var(--bg);
+      border: 3px solid var(--primary);
+      border-radius: 50%;
+      z-index: 5;
+      transition: all 0.3s;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .timeline-dot::after {
+      content: ''; width: 6px; height: 6px;
+      background: var(--primary); border-radius: 50%;
+    }
+    .timeline-item:hover .timeline-dot {
+      transform: scale(1.3);
+      background: var(--primary);
+      box-shadow: 0 0 15px var(--primary);
+    }
+    .timeline-dot.status-pending { border-color: var(--warning); }
+    .timeline-dot.status-pending::after { background: var(--warning); }
+    .timeline-dot.status-approved { border-color: var(--success); }
+    .timeline-dot.status-approved::after { background: var(--success); }
+    .timeline-dot.status-rejected { border-color: var(--danger); }
+    .timeline-dot.status-rejected::after { background: var(--danger); }
+    
+    /* Timeline content */
+    .timeline-content {
+      background: var(--glass);
+      backdrop-filter: blur(10px);
+      border-radius: 20px;
+      padding: 18px;
+      border: 1px solid var(--glass-border);
+      transition: all 0.3s;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+    }
+    .timeline-content::before {
+      content: ''; position: absolute;
+      top: 0; left: 0; width: 4px; height: 100%;
+      background: var(--primary); opacity: 0.8;
+    }
+    .timeline-content:hover {
+      transform: translateX(5px);
+      border-color: var(--primary);
+      background: rgba(0,255,231,0.05);
+      box-shadow: 0 10px 25px rgba(0,255,231,0.15);
+    }
+    
+    /* Price color based on amount */
+    .timeline-content.price-high::before { background: var(--danger); }    .timeline-content.price-medium::before { background: var(--warning); }
+    .timeline-content.price-low::before { background: var(--success); }
+    
+    .item-header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 12px; flex-wrap: wrap; gap: 8px;
+    }
+    .item-type { display: flex; align-items: center; gap: 8px; font-weight: bold; }
+    .item-type .icon { font-size: 1.3rem; }
+    .item-price { font-size: 1.2rem; font-weight: bold; color: var(--primary); }
+    
+    .item-details {
+      display: flex; flex-wrap: wrap; gap: 15px;
+      margin-bottom: 12px; font-size: 0.85rem; color: var(--text-muted);
+    }
+    .item-details span { display: flex; align-items: center; gap: 5px; }
+    
+    .item-footer {
+      display: flex; justify-content: space-between; align-items: center;
+      flex-wrap: wrap; gap: 10px;
+    }
+    .item-date { font-size: 0.7rem; color: var(--text-muted); display: flex; align-items: center; gap: 5px; }
+    
+    .status-badge {
+      padding: 4px 12px; border-radius: 20px;
+      font-size: 0.7rem; font-weight: 600;
+    }
+    .status-badge.pending { background: rgba(245,158,11,0.2); color: var(--warning); }
+    .status-badge.approved { background: rgba(16,185,129,0.2); color: var(--success); }
+    .status-badge.rejected { background: rgba(239,68,68,0.2); color: var(--danger); }
+    
+    .copy-order-id {
+      font-size: 0.7rem; color: var(--primary);
+      cursor: pointer; transition: opacity 0.2s;
+    }
+    .copy-order-id:hover { opacity: 0.7; text-decoration: underline; }
+    
+    /* 🔹 Loading State */
+    .loading-container { text-align: center; padding: 60px 20px; }
+    .modern-spinner {
+      width: 50px; height: 50px;
+      border: 3px solid rgba(0,255,231,0.2);
+      border-top: 3px solid var(--primary);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 20px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    
+    /* 🔹 Empty State */    .empty-state {
+      text-align: center; padding: 60px 20px;
+    }
+    .empty-icon { font-size: 80px; margin-bottom: 20px; opacity: 0.5; }
+    .empty-state h3 { font-size: 1.3rem; margin-bottom: 10px; color: var(--text-muted); }
+    .empty-state p { color: var(--text-muted); font-size: 0.85rem; }
+    .shop-btn {
+      margin-top: 25px;
+      background: linear-gradient(90deg, var(--primary), var(--secondary));
+      border: none; border-radius: 40px;
+      padding: 12px 30px; font-weight: bold; color: black;
+      cursor: pointer; transition: all 0.2s;
+    }
+    .shop-btn:hover { transform: scale(1.05); }
+    
+    /* 🔹 Toast */
+    .toast {
+      position: fixed; bottom: 30px; left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background: rgba(0,0,0,0.95); backdrop-filter: blur(8px);
+      color: white; padding: 12px 24px; border-radius: 50px;
+      font-size: 0.85rem; opacity: 0;
+      transition: transform 0.3s, opacity 0.3s;
+      pointer-events: none; z-index: 200;
+      border: 1px solid var(--primary);
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+    
+    @media (max-width: 550px) {
+      .header { padding: 15px; }
+      .header h1 { font-size: 1.1rem; }
+      .timeline { padding: 20px 15px 70px; }
+      .timeline::before { left: 20px; }
+      .timeline-item { padding-left: 50px; }
+      .timeline-dot { left: 11px; width: 16px; height: 16px; }
+      .item-price { font-size: 1rem; }
+      .filter-bar { padding: 0 15px; }
+      .stats-cards { padding: 0 15px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="bg-gradient"></div>
+<div class="particle" id="particles"></div>
+
+<!-- 🔹 Header -->
+<div class="header">
+  <button class="back-btn" onclick="goBack()">← နောက်သို့</button>
+  <h1>📜 ဝယ်ယူမှုမှတ်တမ်း</h1>  <div class="stats-badge" id="statsBadge">💰 စုစုပေါင်း <span id="totalSpent">0</span> ကျပ်</div>
+</div>
+
+<!-- 🔹 Search & Filter -->
+<div class="filter-bar">
+  <input type="text" class="search-input" id="searchInput" placeholder="🔍 ရှာဖွေရန် (ပစ္စည်း/အိုင်ဒီ)...">
+  <select class="filter-select" id="typeFilter">
+    <option value="all">အားလုံး</option>
+    <option value="MLBB_Diamond">💎 MLBB</option>
+    <option value="MagicChess">♟️ Magic Chess</option>
+    <option value="HonorOfKings">👑 Honor of Kings</option>
+    <option value="TelegramPremium">⭐ Telegram Premium</option>
+    <option value="recharge">💰 ငွေဖြည့်</option>
+  </select>
+  <select class="filter-select" id="statusFilter">
+    <option value="all">အခြေအနေ: အားလုံး</option>
+    <option value="pending">⏳ ဆိုင်းငံ့</option>
+    <option value="approved">✅ အတည်ပြု</option>
+    <option value="rejected">❌ ပယ်ဖျက်</option>
+  </select>
+</div>
+
+<!-- 🔹 Stats Cards -->
+<div class="stats-cards">
+  <div class="stat-card">
+    <div class="stat-value" id="totalOrders">0</div>
+    <div class="stat-label">စုစုပေါင်း အော်ဒါ</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-value" id="pendingCount">0</div>
+    <div class="stat-label">ဆိုင်းငံ့နေ</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-value" id="approvedCount">0</div>
+    <div class="stat-label">အတည်ပြုပြီး</div>
+  </div>
+</div>
+
+<!-- 🔹 Timeline -->
+<div class="timeline" id="timelineContainer">
+  <div class="loading-container">
+    <div class="modern-spinner"></div>
+    <p>မှတ်တမ်းများ ဖတ်နေသည်...</p>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+  // 🔑 Supabase Config  const SUPABASE_URL = 'https://ibrdrdumqqcskxfbmect.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlicmRyZHVtcXFjc2t4ZmJtZWN0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk4OTAxMDgsImV4cCI6MjA5NTQ2NjEwOH0.r1UB_IL7J9AxIDhwO9uXxn2EdQW4lReCrPk6JlTh0cE';
+  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  const timelineContainer = document.getElementById('timelineContainer');
+  const totalSpentSpan = document.getElementById('totalSpent');
+  const totalOrdersSpan = document.getElementById('totalOrders');
+  const pendingCountSpan = document.getElementById('pendingCount');
+  const approvedCountSpan = document.getElementById('approvedCount');
+  const searchInput = document.getElementById('searchInput');
+  const typeFilter = document.getElementById('typeFilter');
+  const statusFilter = document.getElementById('statusFilter');
+  const toast = document.getElementById('toast');
+
+  let allOrders = [];
+
+  // 🔔 Toast Notification
+  function showToast(message) {
+    toast.textContent = message;
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 2500);
+  }
+
+  // 🎨 Create Particles
+  function createParticles() {
+    const container = document.getElementById('particles');
+    for (let i = 0; i < 60; i++) {
+      const span = document.createElement('span');
+      const size = Math.random() * 4 + 1;
+      span.style.width = `${size}px`;
+      span.style.height = `${size}px`;
+      span.style.left = `${Math.random() * 100}%`;
+      span.style.animationDelay = `${Math.random() * 10}s`;
+      span.style.animationDuration = `${Math.random() * 6 + 6}s`;
+      container.appendChild(span);
+    }
+  }
+  createParticles();
+
+  // 🔙 Go Back
+  window.goBack = () => { window.location.href = "index.html"; };
+
+  // 💰 Get Price Class
+  function getPriceClass(price) {
+    if (price >= 50000) return 'price-high';
+    if (price >= 20000) return 'price-medium';
+    return 'price-low';
+  }
+
+  // 🎯 Get Type Icon  function getTypeIcon(type) {
+    const icons = {
+      'MLBB_Diamond': '💎',
+      'MagicChess': '♟️',
+      'HonorOfKings': '👑',
+      'TelegramPremium': '⭐',
+      'recharge': '💰',
+      'Diamond': '💎',
+      'Game': '🎮'
+    };
+    return icons[type] || '🎁';
+  }
+
+  // 📅 Format Date
+  function formatDate(timestamp) {
+    if (!timestamp) return 'ရက်စွဲမရှိ';
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diffDays = Math.floor((now - date) / (1000 * 60 * 60 * 24));
+    
+    if (diffDays === 0) return 'ယနေ့ ' + date.toLocaleTimeString('my-MM', { hour: '2-digit', minute: '2-digit' });
+    if (diffDays === 1) return 'မနေ့က ' + date.toLocaleTimeString('my-MM', { hour: '2-digit', minute: '2-digit' });
+    if (diffDays < 7) return `${diffDays} ရက်အလိုက`;
+    return date.toLocaleDateString('my-MM') + ' ' + date.toLocaleTimeString('my-MM', { hour: '2-digit', minute: '2-digit' });
+  }
+
+  // 📋 Render Single Order
+  function renderOrder(order, index) {
+    const priceClass = getPriceClass(order.total_price || order.price || 0);
+    const typeIcon = getTypeIcon(order.service_type || order.type);
+    const dateStr = formatDate(order.created_at || order.timestamp);
+    const status = order.status || 'pending';
+    const price = order.total_price || order.price || 0;
+    const orderId = order.id?.substring(0, 8) || 'N/A';
+    
+    const div = document.createElement("div");
+    div.className = `timeline-item`;
+    div.style.animationDelay = `${index * 0.05}s`;
+    div.dataset.type = order.service_type || order.type || '';
+    div.dataset.status = status;
+    div.dataset.search = `${order.service_type} ${order.game_id} ${orderId}`.toLowerCase();
+    
+    div.innerHTML = `
+      <div class="timeline-dot status-${status}"></div>
+      <div class="timeline-content ${priceClass}">
+        <div class="item-header">
+          <div class="item-type">
+            <span class="icon">${typeIcon}</span>
+            <span>${order.service_type || order.type || 'ဝယ်ယူမှု'}</span>
+          </div>          <div class="item-price">${price.toLocaleString()} ကျပ်</div>
+        </div>
+        <div class="item-details">
+          ${order.game_id ? `<span>🆔 ${order.game_id}</span>` : ''}
+          ${order.quantity && order.quantity > 1 ? `<span>🔢 x${order.quantity}</span>` : ''}
+          ${order.admin_note ? `<span>📝 ${order.admin_note}</span>` : ''}
+        </div>
+        <div class="item-footer">
+          <div class="item-date"><span>📅</span> ${dateStr}</div>
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <span class="status-badge ${status}">${status === 'pending' ? '⏳ ဆိုင်းငံ့' : status === 'approved' ? '✅ အတည်ပြု' : '❌ ပယ်ဖျက်'}</span>
+            <span class="copy-order-id" onclick="copyOrderId('${orderId}')">📋 Copy ID</span>
+          </div>
+        </div>
+      </div>
+    `;
+    
+    return div;
+  }
+
+  // 📋 Render All Orders
+  function renderOrders(orders) {
+    timelineContainer.innerHTML = "";
+    
+    if (orders.length === 0) {
+      timelineContainer.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-icon">📭</div>
+          <h3>မှတ်တမ်းမရှိသေးပါ</h3>
+          <p>ဂိမ်းဆိုင်မှ ပထမဆုံးဝယ်ယူမှုပြုလုပ်ပါ</p>
+          <button class="shop-btn" onclick="window.location.href='index.html'">🎮 ဂိမ်းများဝယ်ရန်</button>
+        </div>
+      `;
+      return;
+    }
+
+    orders.forEach((order, index) => {
+      const card = renderOrder(order, index);
+      timelineContainer.appendChild(card);
+    });
+  }
+
+  // 🔍 Filter Orders
+  function filterOrders() {
+    const searchTerm = searchInput.value.toLowerCase();
+    const typeValue = typeFilter.value;
+    const statusValue = statusFilter.value;
+    
+    const filtered = allOrders.filter(order => {
+      const searchStr = `${order.service_type} ${order.game_id} ${order.id}`.toLowerCase();      const matchesSearch = searchTerm === '' || searchStr.includes(searchTerm);
+      const matchesType = typeValue === 'all' || (order.service_type || order.type) === typeValue;
+      const matchesStatus = statusValue === 'all' || order.status === statusValue;
+      return matchesSearch && matchesType && matchesStatus;
+    });
+    
+    renderOrders(filtered);
+  }
+
+  // 📋 Copy Order ID
+  window.copyOrderId = (orderId) => {
+    navigator.clipboard.writeText(orderId);
+    showToast("✅ Order ID ကို ကူးယူပြီးပါပြီ");
+  };
+
+  // 📚 Load Orders from Supabase
+  async function loadOrders(userId) {
+    try {
+      const { data: orders, error } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      
+      allOrders = orders || [];
+      
+      // Calculate stats
+      const totalSpent = allOrders.reduce((sum, o) => sum + (o.total_price || o.price || 0), 0);
+      const pendingCount = allOrders.filter(o => o.status === 'pending').length;
+      const approvedCount = allOrders.filter(o => o.status === 'approved').length;
+      
+      totalSpentSpan.innerText = totalSpent.toLocaleString();
+      totalOrdersSpan.innerText = allOrders.length;
+      pendingCountSpan.innerText = pendingCount;
+      approvedCountSpan.innerText = approvedCount;
+      
+      // Initial render
+      filterOrders();
+      
+    } catch (err) {
+      console.error("Error loading orders:", err);
+      timelineContainer.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-icon">⚠️</div>
+          <h3>ဒေတာများ ဖတ်ယူရာတွင် အမှားရှိသည်</h3>
+          <p>${err.message}</p>
+          <button class="shop-btn" onclick="location.reload()">🔄 ပြန်စမ်းမည်</button>
+        </div>      `;
+    }
+  }
+
+  // 🔐 Auth Check & Init
+  async function initHistory() {
+    const {  { user } } = await supabase.auth.getUser();
+    
+    if (user) {
+      await loadOrders(user.id);
+      
+      // Add event listeners for filters
+      searchInput.addEventListener('input', filterOrders);
+      typeFilter.addEventListener('change', filterOrders);
+      statusFilter.addEventListener('change', filterOrders);
+      
+    } else {
+      showToast("ကျေးဇူးပြု၍ အကောင့်ဝင်ပါ", true);
+      setTimeout(() => { window.location.href = "login.html"; }, 1500);
+    }
+  }
+
+  // 🚀 Initialize on DOM Ready
+  document.addEventListener('DOMContentLoaded', initHistory);
+</script>
+
+</body>
+</html>
